@@ -781,7 +781,7 @@ const StatsView = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
+                    <table className="w-full min-w-[900px] text-sm text-left">
                         <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
                             <tr>
                                 <th onClick={() => handleSort('name')} className="px-6 py-3 font-medium cursor-pointer hover:bg-gray-100">Specialist</th>
@@ -951,8 +951,8 @@ const TerminalStatesTable = ({ items, onItemClick }: { items: BondItem[], onItem
        </div>
        {/* Use table-fixed and w-full to prevent horizontal scrolling */}
        <div className="overflow-hidden flex-1 relative">
-         <div className="absolute inset-0 overflow-y-auto">
-            <table className="w-full text-sm text-left border-collapse table-fixed">
+         <div className="absolute inset-0 overflow-auto custom-scrollbar">
+            <table className="w-full min-w-[800px] text-sm text-left border-collapse table-fixed">
                 <thead className="bg-white sticky top-0 z-10 shadow-sm">
                     <tr className="text-xs text-gray-500 border-b border-gray-200">
                         {/* Removed # Column */}
@@ -1039,7 +1039,7 @@ const ListView = ({ items }: { items: BondItem[] }) => {
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
             <div className="overflow-auto flex-1">
-                <table className="w-full text-sm text-left">
+                <table className="w-full min-w-[1000px] text-sm text-left">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10">
                         <tr>
                             <th className="px-6 py-3 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('status')}>Status</th>
@@ -1228,7 +1228,7 @@ const App = () => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-full bg-slate-50 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
       
       {/* Sidebar - Higher Z-Index */}
       <aside className="w-full lg:w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-50 flex-shrink-0">
