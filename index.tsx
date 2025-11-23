@@ -916,7 +916,7 @@ const KanbanColumn = ({
 
   return (
     <div 
-      className={`flex flex-col rounded-xl transition-colors duration-200 bg-gray-100 ${className} h-auto xl:min-h-0 xl:h-full`}
+      className={`flex flex-col rounded-xl transition-colors duration-200 bg-gray-100 ${className} h-full`}
     >
       <div className={`p-3 rounded-t-xl border-b flex justify-between items-center sticky top-0 z-10 ${getHeaderColor(status)}`}>
         <h2 className="font-bold text-sm uppercase tracking-wider">{title}</h2>
@@ -925,7 +925,7 @@ const KanbanColumn = ({
         </span>
       </div>
       
-      <div className="p-3 flex-1 xl:overflow-y-auto scrollbar-hide">
+      <div className="p-3 flex-1">
         {items.map(item => (
           <BondCard key={item.id} item={item} onClick={onItemClick} />
         ))}
@@ -942,8 +942,9 @@ const KanbanColumn = ({
 // --- Terminal States Table Component ---
 
 const TerminalStatesTable = ({ items, onItemClick }: { items: BondItem[], onItemClick: (item: BondItem) => void }) => {
+  // Use a fixed or min height to prevent collapse in flex containers
   return (
-    <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full min-h-[300px]">
+    <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[500px] min-h-[400px]">
        {/* Header mimics the spreadsheet style mostly, but cleaner */}
        <div className="bg-gray-100 border-b border-gray-200 px-4 py-2 flex items-center justify-between shrink-0">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Completed (Passed / Too Late)</h3>
