@@ -103,7 +103,8 @@ const generateMockDailyStats = (): DailyStat[] => {
 const MOCK_DAILY_STATS = generateMockDailyStats();
 
 // Configuration
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxhYV14r-KZzP64VapIZVUezMlSFUa_5LfMGmU-g7iUV1fbIuzBoHVusk7OzOJQGBrOfQ/exec'; 
+// Prioritize Environment Variable (for Coolify/Production), fallback to hardcoded
+const SHEET_API_URL = ((import.meta as any).env?.VITE_GOOGLE_SHEET_URL || 'https://script.google.com/macros/s/AKfycbxhYV14r-KZzP64VapIZVUezMlSFUa_5LfMGmU-g7iUV1fbIuzBoHVusk7OzOJQGBrOfQ/exec').trim();
 
 // --- Components ---
 
@@ -1096,8 +1097,21 @@ const useGoogleSheetData = (initialData: BondItem[]) => {
 
         const fetchData = async () => {
             try {
-                const response = await fetch(SHEET_API_URL);
+                const url = SHEET_API_URL.trim();
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const json = await response.json();
+                
                 if (Array.isArray(json)) {
                     // Sanitize Data: Ensure amount is a number to prevent toLocaleString error
                     const sanitizedData = json.map((item: any) => {
@@ -1142,9 +1156,11 @@ const useGoogleSheetData = (initialData: BondItem[]) => {
                     
                     setData(filteredData);
                     setIsConnected(true);
+                } else {
+                     console.warn('Google Sheet response is not an array:', json);
                 }
             } catch (error) {
-                console.error("Failed to fetch Google Sheet data", error);
+                console.error("Failed to fetch Google Sheet data. Ensure script is deployed as 'Anyone'.", error);
                 setIsConnected(false);
             }
         };
@@ -1277,9 +1293,16 @@ const App = () => {
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
         {/* Top Header - Higher Z-Index */}
         <header className="h-16 bg-white border-b flex items-center justify-between px-4 lg:px-8 shadow-sm z-40 flex-shrink-0">
-           <h2 className="text-lg font-semibold text-gray-800">
-               {getPageTitle()}
-           </h2>
+           <div className="flex items-center gap-3">
+               <h2 className="text-lg font-semibold text-gray-800">
+                   {getPageTitle()}
+               </h2>
+               {!isConnected && (
+                   <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded animate-pulse font-medium">
+                       Connection Error
+                   </span>
+               )}
+           </div>
            <div className="flex items-center gap-2 lg:gap-4">
                <span className="text-xs hidden md:inline text-gray-500">Last updated: {new Date().toLocaleTimeString()}</span>
                {view !== 'stats' && (
