@@ -54,12 +54,6 @@ export const BondCard = ({ item, onClick }: { item: BondItem, onClick: (item: Bo
             <div className={`text-sm font-mono font-medium ${isTooLate ? 'text-white' : 'text-gray-800'}`}>
             {item.currency} {(item.amount || 0).toLocaleString()}
             </div>
-            {/* Type Display (Only if not empty) */}
-            {item.type && (
-                <div className={`text-[10px] flex flex-col mt-0.5 ${isTooLate ? 'text-red-200' : 'text-gray-400'}`}>
-                    <span>Type: <span className={isTooLate ? 'text-white' : 'text-gray-600 font-medium'}>{item.type}</span></span>
-                </div>
-            )}
         </div>
         
         {/* Render Submission Info if Submitted, otherwise status dot */}

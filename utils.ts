@@ -74,3 +74,26 @@ export const formatSheetTime = (val: any): string => {
         return String(val);
     }
 };
+
+export const parseDisplayDateTime = (dateStr: string, timeStr: string): number => {
+    if (!dateStr) return 0;
+    // Expect DD.MM.YYYY
+    const dParts = dateStr.split('.');
+    if (dParts.length !== 3) return 0;
+    
+    const day = parseInt(dParts[0], 10);
+    const month = parseInt(dParts[1], 10) - 1; // JS months are 0-based
+    const year = parseInt(dParts[2], 10);
+    
+    let hour = 0, min = 0, sec = 0;
+    if (timeStr) {
+        const tParts = timeStr.split(':');
+        if (tParts.length >= 2) {
+            hour = parseInt(tParts[0], 10);
+            min = parseInt(tParts[1], 10);
+            if (tParts[2]) sec = parseInt(tParts[2], 10);
+        }
+    }
+    
+    return new Date(year, month, day, hour, min, sec).getTime();
+};
