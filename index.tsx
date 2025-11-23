@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import './index.css';
 
 // --- Types ---
 
@@ -103,8 +102,7 @@ const generateMockDailyStats = (): DailyStat[] => {
 const MOCK_DAILY_STATS = generateMockDailyStats();
 
 // Configuration
-// Prioritize Environment Variable (for Coolify/Production), fallback to hardcoded
-const SHEET_API_URL = ((import.meta as any).env?.VITE_GOOGLE_SHEET_URL || 'https://script.google.com/macros/s/AKfycbxhYV14r-KZzP64VapIZVUezMlSFUa_5LfMGmU-g7iUV1fbIuzBoHVusk7OzOJQGBrOfQ/exec').trim();
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxhYV14r-KZzP64VapIZVUezMlSFUa_5LfMGmU-g7iUV1fbIuzBoHVusk7OzOJQGBrOfQ/exec'; 
 
 // --- Components ---
 
@@ -781,7 +779,7 @@ const StatsView = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[900px] text-sm text-left">
+                    <table className="w-full text-sm text-left">
                         <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
                             <tr>
                                 <th onClick={() => handleSort('name')} className="px-6 py-3 font-medium cursor-pointer hover:bg-gray-100">Specialist</th>
@@ -916,7 +914,7 @@ const KanbanColumn = ({
 
   return (
     <div 
-      className={`flex flex-col rounded-xl transition-colors duration-200 bg-gray-100 ${className} h-full`}
+      className={`flex flex-col rounded-xl transition-colors duration-200 bg-gray-100 ${className} h-auto xl:min-h-0 xl:h-full`}
     >
       <div className={`p-3 rounded-t-xl border-b flex justify-between items-center sticky top-0 z-10 ${getHeaderColor(status)}`}>
         <h2 className="font-bold text-sm uppercase tracking-wider">{title}</h2>
@@ -925,7 +923,7 @@ const KanbanColumn = ({
         </span>
       </div>
       
-      <div className="p-3 flex-1">
+      <div className="p-3 flex-1 xl:overflow-y-auto scrollbar-hide">
         {items.map(item => (
           <BondCard key={item.id} item={item} onClick={onItemClick} />
         ))}
@@ -942,9 +940,8 @@ const KanbanColumn = ({
 // --- Terminal States Table Component ---
 
 const TerminalStatesTable = ({ items, onItemClick }: { items: BondItem[], onItemClick: (item: BondItem) => void }) => {
-  // Use a fixed or min height to prevent collapse in flex containers
   return (
-    <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[500px] min-h-[400px]">
+    <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full min-h-[300px]">
        {/* Header mimics the spreadsheet style mostly, but cleaner */}
        <div className="bg-gray-100 border-b border-gray-200 px-4 py-2 flex items-center justify-between shrink-0">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Completed (Passed / Too Late)</h3>
@@ -952,8 +949,8 @@ const TerminalStatesTable = ({ items, onItemClick }: { items: BondItem[], onItem
        </div>
        {/* Use table-fixed and w-full to prevent horizontal scrolling */}
        <div className="overflow-hidden flex-1 relative">
-         <div className="absolute inset-0 overflow-auto custom-scrollbar">
-            <table className="w-full min-w-[800px] text-sm text-left border-collapse table-fixed">
+         <div className="absolute inset-0 overflow-y-auto">
+            <table className="w-full text-sm text-left border-collapse table-fixed">
                 <thead className="bg-white sticky top-0 z-10 shadow-sm">
                     <tr className="text-xs text-gray-500 border-b border-gray-200">
                         {/* Removed # Column */}
@@ -1040,7 +1037,7 @@ const ListView = ({ items }: { items: BondItem[] }) => {
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
             <div className="overflow-auto flex-1">
-                <table className="w-full min-w-[1000px] text-sm text-left">
+                <table className="w-full text-sm text-left">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10">
                         <tr>
                             <th className="px-6 py-3 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('status')}>Status</th>
@@ -1098,21 +1095,8 @@ const useGoogleSheetData = (initialData: BondItem[]) => {
 
         const fetchData = async () => {
             try {
-                const url = SHEET_API_URL.trim();
-                const response = await fetch(url, {
-                    method: 'GET',
-                    redirect: 'follow',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8',
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                const response = await fetch(SHEET_API_URL);
                 const json = await response.json();
-                
                 if (Array.isArray(json)) {
                     // Sanitize Data: Ensure amount is a number to prevent toLocaleString error
                     const sanitizedData = json.map((item: any) => {
@@ -1157,11 +1141,9 @@ const useGoogleSheetData = (initialData: BondItem[]) => {
                     
                     setData(filteredData);
                     setIsConnected(true);
-                } else {
-                     console.warn('Google Sheet response is not an array:', json);
                 }
             } catch (error) {
-                console.error("Failed to fetch Google Sheet data. Ensure script is deployed as 'Anyone'.", error);
+                console.error("Failed to fetch Google Sheet data", error);
                 setIsConnected(false);
             }
         };
@@ -1229,7 +1211,7 @@ const App = () => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
+    <div className="flex flex-col lg:flex-row h-screen w-full bg-slate-50 overflow-hidden">
       
       {/* Sidebar - Higher Z-Index */}
       <aside className="w-full lg:w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-50 flex-shrink-0">
@@ -1294,16 +1276,9 @@ const App = () => {
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
         {/* Top Header - Higher Z-Index */}
         <header className="h-16 bg-white border-b flex items-center justify-between px-4 lg:px-8 shadow-sm z-40 flex-shrink-0">
-           <div className="flex items-center gap-3">
-               <h2 className="text-lg font-semibold text-gray-800">
-                   {getPageTitle()}
-               </h2>
-               {!isConnected && (
-                   <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded animate-pulse font-medium">
-                       Connection Error
-                   </span>
-               )}
-           </div>
+           <h2 className="text-lg font-semibold text-gray-800">
+               {getPageTitle()}
+           </h2>
            <div className="flex items-center gap-2 lg:gap-4">
                <span className="text-xs hidden md:inline text-gray-500">Last updated: {new Date().toLocaleTimeString()}</span>
                {view !== 'stats' && (
