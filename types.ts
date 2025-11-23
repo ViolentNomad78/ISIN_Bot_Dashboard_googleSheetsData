@@ -9,8 +9,12 @@ export interface BondItem {
   status: Status;
   type: string;          // e.g. 'Reg S'
   listingTrigger: string; // e.g. 'MANUAL', 'AUTO'
-  time: string;
-  date: string;
+  time: string;          // Email time
+  date: string;          // Email date
+  triggeredDate?: string;
+  triggeredTime?: string;
+  submittedDate?: string;
+  submittedTime?: string;
   minSize: string;
   submissionPlace?: string; // e.g. '2', '4'
   turnaroundTime?: string;  // e.g. '04:21:19'

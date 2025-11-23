@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BondItem } from '../types';
 import { SHEET_API_URL } from '../data';
+import { formatSheetDate, formatSheetTime } from '../utils';
 
 export const useGoogleSheetData = (initialData: BondItem[]) => {
     const [data, setData] = useState<BondItem[]>(initialData);
@@ -15,15 +16,25 @@ export const useGoogleSheetData = (initialData: BondItem[]) => {
                 const json = await response.json();
                 if (Array.isArray(json)) {
                     const sanitizedData = json.map((item: any) => {
-                        // Helper to safely get value from multiple possible key casing/variations
-                        const getVal = (keys: string[]) => {
-                            for (const k of keys) {
-                                // Check exact match
-                                if (item[k] !== undefined && item[k] !== null && item[k] !== '') return item[k];
-                                // Check lowercase match
-                                const lowerKey = Object.keys(item).find(key => key.toLowerCase() === k.toLowerCase());
-                                if (lowerKey && item[lowerKey] !== undefined && item[lowerKey] !== null && item[lowerKey] !== '') return item[lowerKey];
+                        // Helper to safely get value using flexible key matching
+                        // Handles: Exact match, case-insensitive, and ignores whitespace/newlines/underscores
+                        const getVal = (targetKeys: string[]) => {
+                            // 1. Try exact match first
+                            for (const key of targetKeys) {
+                                if (item[key] !== undefined && item[key] !== null && item[key] !== '') return item[key];
                             }
+
+                            // 2. fuzzy match: normalize keys (lowercase, remove spaces/newlines/underscores)
+                            const normalize = (str: string) => str.toLowerCase().replace(/[\s\n\r_]+/g, '');
+                            const normalizedTargets = targetKeys.map(normalize);
+                            
+                            const itemKeys = Object.keys(item);
+                            const foundKey = itemKeys.find(k => normalizedTargets.includes(normalize(k)));
+                            
+                            if (foundKey && item[foundKey] !== undefined && item[foundKey] !== null && item[foundKey] !== '') {
+                                return item[foundKey];
+                            }
+                            
                             return undefined;
                         };
 
@@ -61,6 +72,24 @@ export const useGoogleSheetData = (initialData: BondItem[]) => {
                             }
                         }
 
+                        // Get raw date/time
+                        const rawTime = getVal(['Email Time', 'EmailTime', 'time']);
+                        const rawDate = getVal(['Email Date', 'EmailDate', 'date']);
+                        
+                        // Specific logic for Column T (Turnaround Time)
+                        // Header in screenshot: "Turnaro\nund\nTime for\nListing"
+                        let rawTurnaround = undefined;
+                        const allKeys = Object.keys(item);
+                        // Find key that contains "turnaro" (or turnaround) AND "listing" to be specific
+                        const turnaroundKey = allKeys.find(k => {
+                            const lower = k.toLowerCase();
+                            return (lower.includes('turnaro') || lower.includes('turnaround')) && lower.includes('listing');
+                        });
+                        
+                        if (turnaroundKey) {
+                            rawTurnaround = item[turnaroundKey];
+                        }
+
                         return {
                             ...item,
                             id: getVal(['id', 'ID', 'Id']) || Math.random().toString(36).substr(2, 9),
@@ -71,11 +100,17 @@ export const useGoogleSheetData = (initialData: BondItem[]) => {
                             status: normalizedStatus,
                             type: getVal(['Type', 'type', 'TYPE']) || '',
                             listingTrigger: getVal(['Listing Trigger', 'ListingTrigger', 'listingTrigger', 'trigger', 'Trigger']) || '',
-                            time: getVal(['Email Time', 'EmailTime', 'email_time', 'time', 'Time']) || '',
-                            date: getVal(['Email Date', 'EmailDate', 'email_date', 'date', 'Date']) || '',
+                            time: formatSheetTime(rawTime),
+                            date: formatSheetDate(rawDate),
+                            // Map Triggered and Submitted timestamps
+                            triggeredDate: formatSheetDate(getVal(['Trigger Date', 'TriggerDate', 'trigger_date'])),
+                            triggeredTime: formatSheetTime(getVal(['Trigger Time', 'TriggerTime', 'trigger_time'])),
+                            submittedDate: formatSheetDate(getVal(['Submitted Date', 'Submission Date', 'submitted_date', 'Listed Date'])),
+                            submittedTime: formatSheetTime(getVal(['Submitted Time', 'Submission Time', 'submitted_time'])),
+                            
                             minSize: minSizeStr,
                             submissionPlace: getVal(['Submission Place', 'SubmissionPlace', 'submissionPlace', 'Place']) || undefined,
-                            turnaroundTime: getVal(['Turnaround und Time for Listing', 'TurnaroundTime', 'turnaroundTime', 'Turnaround']) || undefined
+                            turnaroundTime: formatSheetTime(rawTurnaround) 
                         };
                     });
                     
