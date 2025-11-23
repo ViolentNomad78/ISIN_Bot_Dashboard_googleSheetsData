@@ -25,9 +25,9 @@ export const BondCard = ({ item, onClick }: { item: BondItem, onClick: (item: Bo
             {(item.status || 'scraped').replace('_', ' ')}
             </span>
         </div>
-        <span className={`flex items-center text-xs ${isTooLate ? 'text-red-100' : 'text-gray-400'}`}>
+        <span className={`flex items-center text-[10px] ${isTooLate ? 'text-red-100' : 'text-gray-400'}`}>
           <span className="mr-1"><Icons.Clock /></span>
-          {item.time}
+          <span className="whitespace-nowrap">Email: {item.date} {item.time}</span>
         </span>
       </div>
       
@@ -39,9 +39,10 @@ export const BondCard = ({ item, onClick }: { item: BondItem, onClick: (item: Bo
             <div className={`text-sm font-mono font-medium ${isTooLate ? 'text-white' : 'text-gray-800'}`}>
             {item.currency} {(item.amount || 0).toLocaleString()}
             </div>
-            {/* Added Min Size Display */}
-            <div className={`text-[10px] ${isTooLate ? 'text-red-200' : 'text-gray-400'}`}>
-                Min: {item.minSize || '-'}
+            {/* Min Size and Type Display */}
+            <div className={`text-[10px] flex flex-col mt-0.5 ${isTooLate ? 'text-red-200' : 'text-gray-400'}`}>
+                <span>Min: <span className={isTooLate ? 'text-white' : 'text-gray-600 font-medium'}>{item.minSize || '-'}</span></span>
+                <span>Type: <span className={isTooLate ? 'text-white' : 'text-gray-600 font-medium'}>{item.type || '-'}</span></span>
             </div>
         </div>
         

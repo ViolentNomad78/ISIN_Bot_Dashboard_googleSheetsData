@@ -14,9 +14,20 @@ export const useGoogleSheetData = (initialData: BondItem[]) => {
                 const response = await fetch(SHEET_API_URL);
                 const json = await response.json();
                 if (Array.isArray(json)) {
-                    // Sanitize Data: Ensure amount is a number to prevent toLocaleString error
                     const sanitizedData = json.map((item: any) => {
-                        let normalizedStatus = (item.status || 'scraped').toString().toLowerCase().trim();
+                        // Helper to safely get value from multiple possible key casing/variations
+                        const getVal = (keys: string[]) => {
+                            for (const k of keys) {
+                                // Check exact match
+                                if (item[k] !== undefined && item[k] !== null && item[k] !== '') return item[k];
+                                // Check lowercase match
+                                const lowerKey = Object.keys(item).find(key => key.toLowerCase() === k.toLowerCase());
+                                if (lowerKey && item[lowerKey] !== undefined && item[lowerKey] !== null && item[lowerKey] !== '') return item[lowerKey];
+                            }
+                            return undefined;
+                        };
+
+                        let normalizedStatus = (getVal(['status', 'Status', 'STATUS']) || 'scraped').toString().toLowerCase().trim();
                         
                         // Map common variations to strict Status type
                         if (normalizedStatus === 'too late') normalizedStatus = 'too_late';
@@ -24,34 +35,53 @@ export const useGoogleSheetData = (initialData: BondItem[]) => {
                         if (normalizedStatus === 'trigger') normalizedStatus = 'triggered';
                         if (normalizedStatus === 'submit') normalizedStatus = 'submitted';
                         
-                        // Default fallback if status is completely unknown
+                        // Default fallback
                         const validStatuses = ['scraped', 'triggered', 'submitted', 'passed', 'too_late'];
                         if (!validStatuses.includes(normalizedStatus)) {
                              normalizedStatus = 'scraped';
                         }
 
+                        // Get raw Min Size string
+                        const minSizeStr = getVal(['Minimum Size', 'MinimumSize', 'minSize', 'min_size', 'Min Size']) || '';
+
+                        // Parse amount: Try explicit Amount column first, fallback to parsing Minimum Size
+                        let amount = 0;
+                        const rawAmount = getVal(['amount', 'Amount', 'AMOUNT', 'size', 'Size']);
+                        
+                        if (rawAmount) {
+                            amount = typeof rawAmount === 'number' ? rawAmount : (Number(rawAmount) || 0);
+                        } else if (minSizeStr) {
+                            // Parse "100.000" or "100k" or "100k x 1k"
+                            let cleanStr = String(minSizeStr).toLowerCase().split('x')[0].trim(); // Take first part of "100k x 1k"
+                            cleanStr = cleanStr.replace(/\./g, '').replace(/,/g, ''); // Remove separators
+                            if (cleanStr.includes('k')) {
+                                amount = parseFloat(cleanStr) * 1000;
+                            } else {
+                                amount = parseFloat(cleanStr) || 0;
+                            }
+                        }
+
                         return {
                             ...item,
-                            amount: typeof item.amount === 'number' ? item.amount : (Number(item.amount) || 0),
-                            id: item.id || Math.random().toString(36).substr(2, 9),
+                            id: getVal(['id', 'ID', 'Id']) || Math.random().toString(36).substr(2, 9),
+                            isin: getVal(['isin', 'ISIN', 'Isin']) || 'Unknown',
+                            issuer: getVal(['issuer', 'Issuer', 'ISSUER']) || 'Unknown',
+                            amount: amount,
+                            currency: getVal(['currency', 'Currency', 'Curr']) || '€',
                             status: normalizedStatus,
-                            currency: item.currency || '€',
-                            isin: item.isin || 'Unknown',
-                            issuer: item.issuer || 'Unknown',
-                            listingTrigger: item.listingTrigger || item.trigger || '',
-                            time: item.time || '',
-                            date: item.date || '',
-                            minSize: item.minSize || '',
-                            type: item.type || ''
+                            type: getVal(['Type', 'type', 'TYPE']) || '',
+                            listingTrigger: getVal(['Listing Trigger', 'ListingTrigger', 'listingTrigger', 'trigger', 'Trigger']) || '',
+                            time: getVal(['Email Time', 'EmailTime', 'email_time', 'time', 'Time']) || '',
+                            date: getVal(['Email Date', 'EmailDate', 'email_date', 'date', 'Date']) || '',
+                            minSize: minSizeStr,
+                            submissionPlace: getVal(['Submission Place', 'SubmissionPlace', 'submissionPlace', 'Place']) || undefined,
+                            turnaroundTime: getVal(['Turnaround und Time for Listing', 'TurnaroundTime', 'turnaroundTime', 'Turnaround']) || undefined
                         };
                     });
                     
-                    // Filter out rows that are effectively empty (no ISIN or "Unknown" ISIN combined with 0 amount)
+                    // Filter out empty rows
                     const filteredData = sanitizedData.filter((item: BondItem) => {
-                         // If ISIN is "Unknown" AND Amount is 0, it's likely an empty row from the sheet
-                         if (item.isin === 'Unknown' && item.amount === 0) return false;
-                         // If ISIN is explicitly empty string
-                         if (!item.isin) return false;
+                         if ((!item.isin || item.isin === 'Unknown') && item.amount === 0) return false;
                          return true;
                     });
                     

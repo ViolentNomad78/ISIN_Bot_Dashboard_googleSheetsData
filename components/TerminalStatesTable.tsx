@@ -17,8 +17,8 @@ export const TerminalStatesTable = ({ items, onItemClick }: { items: BondItem[],
                     <tr className="text-xs text-gray-500 border-b border-gray-200">
                         {/* Removed # Column */}
                         <th className="px-2 py-2 w-28 text-center">Status</th>
-                        <th className="px-2 py-2 w-24">Date</th>
-                        <th className="px-2 py-2 w-20">Time</th>
+                        <th className="px-2 py-2 w-24">Email Date</th>
+                        <th className="px-2 py-2 w-20">Email Time</th>
                         <th className="px-2 py-2 w-32">ISIN</th>
                         <th className="px-2 py-2 w-auto">Issuer</th>
                         <th className="px-2 py-2 w-24 text-right">Size</th>
