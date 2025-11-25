@@ -21,6 +21,20 @@ export const BondCard: React.FC<{ item: BondItem, onClick: (item: BondItem) => v
       }
   }
 
+  // Helper to format the size with dots (de-DE) if it is a plain number
+  const formatSize = (val: string | number | undefined, fallback: number) => {
+      if (val !== undefined && val !== null && val !== '') {
+           const strVal = String(val);
+           // If the string is purely numeric (digits, optionally a dot for decimals), format it.
+           // This avoids messing up strings like "100k" or "100k x 1k".
+           if (/^\d+(\.\d+)?$/.test(strVal)) {
+               return parseFloat(strVal).toLocaleString('de-DE');
+           }
+           return strVal;
+      }
+      return (fallback || 0).toLocaleString('de-DE');
+  };
+
   return (
     <div 
       onClick={() => onClick(item)}
@@ -52,7 +66,7 @@ export const BondCard: React.FC<{ item: BondItem, onClick: (item: BondItem) => v
       <div className="flex justify-between items-end mt-auto">
         <div className="flex flex-col">
             <div className={`text-sm font-mono font-medium ${isTooLate ? 'text-white' : 'text-gray-800'}`}>
-            {item.currency} {(item.amount || 0).toLocaleString()}
+            {item.currency} {formatSize(item.minSize, item.amount)}
             </div>
         </div>
         

@@ -86,7 +86,7 @@ export const BookrunnersView = () => {
                         </div>
                         <input 
                             type="text" 
-                            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#9F8A79] focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#9F8A79] focus:border-transparent transition-all bg-gray-50 text-gray-900 focus:bg-white"
                             placeholder="Search Bookrunner..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -97,7 +97,7 @@ export const BookrunnersView = () => {
 
                     {/* Currency Filter */}
                     <select 
-                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9F8A79] outline-none"
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-900 focus:bg-white focus:ring-2 focus:ring-[#9F8A79] outline-none"
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
                     >
