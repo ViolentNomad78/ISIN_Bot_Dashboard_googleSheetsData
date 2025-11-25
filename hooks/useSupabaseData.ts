@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { BondItem } from '../types';
 import { supabase } from '../supabaseClient';
@@ -40,8 +41,8 @@ export const useSupabaseData = (initialData: BondItem[]) => {
                         status: item.status || 'scraped',
                         type: item.type,
                         listingTrigger: item.listing_trigger,
-                        time: formatSheetTime(item.email_time),
-                        date: formatSheetDate(item.email_date),
+                        time: formatSheetTime(item.email_time || item.email_at),
+                        date: formatSheetDate(item.email_date || item.email_at),
                         minSize: item.min_size,
                         submissionPlace: item.submission_place,
                         turnaroundTime: formatSheetTime(item.turnaround_time),

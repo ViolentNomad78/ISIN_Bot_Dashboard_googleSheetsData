@@ -1,3 +1,5 @@
+
+
 export type Status = 'scraped' | 'triggered' | 'submitted' | 'passed' | 'too_late';
 
 export interface BondItem {
@@ -43,4 +45,18 @@ export interface SpecialistStat {
 export interface DailyStat {
     date: string;
     count: number;
+}
+
+export interface BookrunnerStat {
+    id: string;
+    name: string;
+    dealCount: number;
+    marketShare: number; // percentage (0-100)
+    lastActive: string | null; // ISO date string of last deal
+    deals: {
+        isin: string;
+        date: string;
+        issuer: string;
+        currency: string;
+    }[];
 }

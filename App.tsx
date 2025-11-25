@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BondItem, AutoTriggerRule } from './types';
 import { INITIAL_DATA, INITIAL_RULES, INITIAL_ISSUERS } from './data';
@@ -8,6 +9,7 @@ import { BondDetailModal } from './components/BondDetailModal';
 import { AddIsinModal } from './components/AddIsinModal';
 import { AutoTriggerWidget, FavoriteIssuersWidget, StatWidget } from './components/Widgets';
 import { StatsView } from './components/StatsView';
+import { BookrunnersView } from './components/BookrunnersView';
 import { KanbanColumn } from './components/KanbanColumn';
 import { TerminalStatesTable } from './components/TerminalStatesTable';
 import { ListView } from './components/ListView';
@@ -16,7 +18,7 @@ import { useSupabaseData } from './hooks/useSupabaseData';
 
 export const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [view, setView] = useState<'board' | 'list' | 'stats'>('board');
+  const [view, setView] = useState<'board' | 'list' | 'stats' | 'bookrunners'>('board');
   
   // Use Supabase for Realtime Data
   const { data: items, setData, isConnected } = useSupabaseData(INITIAL_DATA);
@@ -59,6 +61,7 @@ export const App = () => {
           case 'board': return 'ISIN Flow';
           case 'list': return 'Global ISIN Registry';
           case 'stats': return 'Bot Listing Statistics';
+          case 'bookrunners': return 'Bookrunner Analytics';
           default: return '';
       }
   };
@@ -106,6 +109,14 @@ export const App = () => {
             <Icons.BarChart />
             <span className="font-medium">Statistics</span>
           </button>
+
+          <button 
+             onClick={() => setView('bookrunners')}
+             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'bookrunners' ? 'bg-[#9F8A79] text-white shadow-lg' : 'hover:bg-slate-800'}`}
+          >
+            <Icons.Briefcase />
+            <span className="font-medium">Bookrunners</span>
+          </button>
           
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors">
             <Icons.Settings />
@@ -118,12 +129,13 @@ export const App = () => {
              <button onClick={() => setView('board')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'board' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Flow Board</button>
              <button onClick={() => setView('list')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'list' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>All ISINs</button>
              <button onClick={() => setView('stats')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'stats' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Stats</button>
+             <button onClick={() => setView('bookrunners')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'bookrunners' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Bookrunners</button>
         </div>
 
         <div className="p-4 border-t border-slate-800 hidden lg:block">
             <div className="text-xs text-slate-500 mb-2">System Status</div>
             <div className="flex items-center justify-between mb-3">
-                 <span className="text-sm font-medium text-slate-200">Data Feed</span>
+                 <span className="text-sm font-medium text-slate-200">Supabase Feed</span>
                  <div className="flex items-center gap-2">
                      <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-orange-500'}`}></span>
                      <span className={`text-xs ${isConnected ? 'text-green-400' : 'text-orange-400'}`}>
@@ -149,7 +161,7 @@ export const App = () => {
            </h2>
            <div className="flex items-center gap-2 lg:gap-4">
                <span className="text-xs hidden md:inline text-gray-500">Last updated: {new Date().toLocaleTimeString()}</span>
-               {view !== 'stats' && (
+               {view !== 'stats' && view !== 'bookrunners' && (
                    <button 
                     onClick={() => setIsAddModalOpen(true)}
                     className="bg-[#9F8A79] hover:bg-[#8a7566] text-white px-3 py-1.5 lg:px-4 lg:py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap"
@@ -163,6 +175,8 @@ export const App = () => {
         {/* Content Area */}
         {view === 'stats' ? (
             <StatsView />
+        ) : view === 'bookrunners' ? (
+            <BookrunnersView />
         ) : (
             <div className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden relative">
                 
