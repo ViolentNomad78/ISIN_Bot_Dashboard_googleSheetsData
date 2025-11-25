@@ -1,3 +1,4 @@
+
 import { BondItem, AutoTriggerRule, SpecialistStat, DailyStat } from './types';
 
 export const INITIAL_DATA: BondItem[] = [
@@ -39,7 +40,6 @@ const generateMockDailyStats = (): DailyStat[] => {
     for (let i = 0; i < 30; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        // Random count between 2 and 55, higher on weekdays
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
         const base = isWeekend ? 0 : 15;
         const count = Math.max(0, base + Math.floor(Math.random() * 40));
@@ -53,4 +53,10 @@ const generateMockDailyStats = (): DailyStat[] => {
 
 export const MOCK_DAILY_STATS = generateMockDailyStats();
 
-export const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxhYV14r-KZzP64VapIZVUezMlSFUa_5LfMGmU-g7iUV1fbIuzBoHVusk7OzOJQGBrOfQ/exec'; 
+// Keeping this for the backup update logic
+export const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxhYV14r-KZzP64VapIZVUezMlSFUa_5LfMGmU-g7iUV1fbIuzBoHVusk7OzOJQGBrOfQ/exec';
+export const N8N_WEBHOOK_URL = 'https://n8n.cloudgetlisted.xyz/webhook/man_trigger';
+
+// SUPABASE CONFIGURATION
+export const SUPABASE_URL = 'https://qcanxkylsuumoblztyuv.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjYW54a3lsc3V1bW9ibHp0eXV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMzU4ODUsImV4cCI6MjA3OTYxMTg4NX0.tsgTRTwcLm4_STGJLkgKn2piWtb0pjW6Gupl8A0pIb4';

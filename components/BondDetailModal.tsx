@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { BondItem } from '../types';
 import { getStatusColor } from '../utils';
-import { SHEET_API_URL } from '../data';
+import { SHEET_API_URL, N8N_WEBHOOK_URL } from '../data';
+import { supabase } from '../supabaseClient';
 
 export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondItem | null, isOpen: boolean, onClose: () => void, onSave: (updatedItem: BondItem) => void }) => {
     const [formData, setFormData] = useState<BondItem | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (item) setFormData(item);
@@ -12,51 +14,79 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
 
     if (!isOpen || !formData) return null;
 
-    // Trigger Google Sheet Webhook (doPost)
+    // Trigger Google Sheet Webhook (Backup Method)
     const triggerGoogleSheetWebhook = async (item: BondItem, action: string) => {
-        if (!SHEET_API_URL) {
-             console.log(`[Mock Action] ${action} for ${item.isin}`);
-             return;
-        }
+        if (!SHEET_API_URL) return;
 
         const payload = {
-            action: action, // 'TRIGGER_MANUAL' or 'PASS'
-            isin: item.isin,
-            id: item.id,
+            sheetName: 'ISINs',
+            searchColumn: 'E',
+            searchValue: item.isin,
+            targetColumn: action === 'TRIGGER_MANUAL' ? 'A' : 'B',
+            value: 'TRUE',
+            action: 'UPDATE_ROW',
+            n8nWebhook: N8N_WEBHOOK_URL,
+            actionType: action,
+            user_email: 'novadani78@gmail.com',
+            user_nickname: 'novadani78',
             timestamp: new Date().toISOString()
         };
 
         try {
-            console.log(`Sending ${action} to Google Sheet...`);
-            // We use no-cors to avoid CORS errors from GAS, but this means we don't get a readable response
+            const formBody = new URLSearchParams(payload).toString();
             await fetch(SHEET_API_URL, {
                 method: 'POST',
-                mode: 'no-cors', 
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formBody
             });
-            console.log(`[Google Sheet] Sent action: ${action}`);
+            console.log(`[Backup] Google Sheet webhook triggered.`);
         } catch (error) {
-            console.error("Failed to trigger webhook", error);
+            console.error("Failed to trigger backup webhook", error);
         }
     };
 
     const handleAction = async (action: 'triggered' | 'passed') => {
-        if (formData) {
-            let updatedItem = { ...formData, status: action };
+        if (formData && !isSubmitting) {
+            setIsSubmitting(true);
             
-            // If action is trigger, set MANUAL badge
+            // 1. Optimistic Update in UI
+            let updatedItem = { ...formData, status: action };
             if (action === 'triggered') {
                 updatedItem.listingTrigger = 'MANUAL';
-                await triggerGoogleSheetWebhook(formData, 'TRIGGER_MANUAL');
-            } else {
-                await triggerGoogleSheetWebhook(formData, 'PASS');
             }
+            
+            try {
+                // 2. Update Supabase
+                // Using 'upsert' to handle both existing IDs (from DB) and ephemeral ones
+                // Changed table from 'bonds' to 'bond_isins'
+                const { error } = await supabase
+                    .from('bond_isins')
+                    .upsert({ 
+                        isin: updatedItem.isin,
+                        status: action,
+                        listing_trigger: updatedItem.listingTrigger,
+                        triggered_at: action === 'triggered' ? new Date().toISOString() : undefined,
+                        // Add other fields to ensure record is complete if it didn't exist
+                        issuer: updatedItem.issuer,
+                        amount: updatedItem.amount
+                    }, { onConflict: 'isin' }); // Assuming ISIN is unique constraint, otherwise use ID
 
-            onSave(updatedItem);
-            onClose();
+                if (error) throw error;
+
+                // 3. Trigger Google Sheet (Backup/N8N trigger)
+                const webhookAction = action === 'triggered' ? 'TRIGGER_MANUAL' : 'PASS';
+                await triggerGoogleSheetWebhook(formData, webhookAction);
+
+                // 4. Save and Close
+                onSave(updatedItem);
+                onClose();
+            } catch (err) {
+                console.error('Action failed:', err);
+                alert('Failed to update status. Check console.');
+            } finally {
+                setIsSubmitting(false);
+            }
         }
     };
 
@@ -120,7 +150,6 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
                                 value={formData.currency === '€' ? 'EUR (€)' : 'USD ($)'}
                             />
                         </div>
-                        {/* Only show Trigger field if not in Scraped status */}
                         {formData.status !== 'scraped' && (
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Trigger</label>
@@ -146,7 +175,7 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
                              <span className="block font-medium mb-1">Constraints</span>
                              <div className="flex gap-2">
                                  <span>Min: {formData.minSize}</span>
-                                 <span>Type: {formData.type}</span>
+                                 {formData.type && <span>Type: {formData.type}</span>}
                              </div>
                         </div>
                     </div>
@@ -165,25 +194,25 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
                             ALLQ
                         </button>
                         
-                        {/* Trigger Button: Show for Scraped OR Passed items */}
                         {(isScraped || isPassed) && (
                             <button 
                                 type="button" 
                                 onClick={() => handleAction('triggered')}
-                                className="flex-1 px-3 py-2 text-sm font-bold text-yellow-900 bg-yellow-400 hover:bg-yellow-500 rounded-md transition-colors shadow-sm"
+                                disabled={isSubmitting}
+                                className={`flex-1 px-3 py-2 text-sm font-bold text-yellow-900 bg-yellow-400 hover:bg-yellow-500 rounded-md transition-colors shadow-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                Trigger
+                                {isSubmitting ? 'Sending...' : 'Trigger'}
                             </button>
                         )}
 
-                        {/* Pass Button: Show ONLY for Scraped items */}
                         {isScraped && (
                             <button 
                                 type="button" 
                                 onClick={() => handleAction('passed')}
-                                className="flex-1 px-3 py-2 text-sm font-bold text-red-900 bg-red-200 hover:bg-red-300 rounded-md transition-colors shadow-sm"
+                                disabled={isSubmitting}
+                                className={`flex-1 px-3 py-2 text-sm font-bold text-red-900 bg-red-200 hover:bg-red-300 rounded-md transition-colors shadow-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                Pass
+                                {isSubmitting ? 'Sending...' : 'Pass'}
                             </button>
                         )}
                     </div>

@@ -6,14 +6,30 @@ import { formatSheetDate, formatSheetTime } from '../utils';
 export const useGoogleSheetData = (initialData: BondItem[]) => {
     const [data, setData] = useState<BondItem[]>(initialData);
     const [isConnected, setIsConnected] = useState(false);
+    const [errorCount, setErrorCount] = useState(0);
 
     useEffect(() => {
         if (!SHEET_API_URL) return;
 
         const fetchData = async () => {
+            // Stop polling if we've hit too many consecutive errors to avoid console spam
+            if (errorCount > 10) return;
+
             try {
-                const response = await fetch(SHEET_API_URL);
+                // Append timestamp to prevent caching issues
+                // Added credentials: 'omit' and redirect: 'follow' to fix "Failed to fetch" CORS errors
+                const response = await fetch(`${SHEET_API_URL}?nocache=${Date.now()}`, {
+                    method: 'GET',
+                    credentials: 'omit',
+                    redirect: 'follow'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const json = await response.json();
+                
                 if (Array.isArray(json)) {
                     const sanitizedData = json.map((item: any) => {
                         // Helper to safely get value using flexible key matching
@@ -122,17 +138,19 @@ export const useGoogleSheetData = (initialData: BondItem[]) => {
                     
                     setData(filteredData);
                     setIsConnected(true);
+                    setErrorCount(0); // Reset error count on success
                 }
             } catch (error) {
-                console.error("Failed to fetch Google Sheet data", error);
+                console.warn("Unable to fetch live data (using cached/mock data):", error);
                 setIsConnected(false);
+                setErrorCount(prev => prev + 1);
             }
         };
 
         fetchData();
         const intervalId = setInterval(fetchData, 5000);
         return () => clearInterval(intervalId);
-    }, []);
+    }, [errorCount]);
 
     return { data, setData, isConnected };
 };

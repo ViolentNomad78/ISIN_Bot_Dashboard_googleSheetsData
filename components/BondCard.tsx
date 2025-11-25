@@ -2,7 +2,7 @@ import React from 'react';
 import { BondItem } from '../types';
 import { getStatusColor, getTriggerColor } from '../utils';
 
-export const BondCard = ({ item, onClick }: { item: BondItem, onClick: (item: BondItem) => void }) => {
+export const BondCard: React.FC<{ item: BondItem, onClick: (item: BondItem) => void }> = ({ item, onClick }) => {
   const isTooLate = item.status === 'too_late';
   
   // Logic to determine which date/time to display based on Status

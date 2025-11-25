@@ -138,7 +138,7 @@ export const FavoriteIssuersWidget = ({ issuers, onAdd, onRemove }: { issuers: s
     );
 };
 
-export const StatWidget = ({ title, children }: { title: string, children: React.ReactNode }) => (
+export const StatWidget = ({ title, children }: React.PropsWithChildren<{ title: string }>) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
         <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide border-b pb-2">{title}</h3>
         {children}

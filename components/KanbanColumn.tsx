@@ -44,9 +44,9 @@ export const KanbanColumn = ({
 
   return (
     <div 
-      className={`flex flex-col rounded-xl transition-colors duration-200 bg-gray-100 ${className} h-auto xl:min-h-0 xl:h-full`}
+      className={`flex flex-col rounded-xl transition-colors duration-200 bg-gray-100 ${className} h-[600px]`}
     >
-      <div className={`p-3 rounded-t-xl border-b flex justify-between items-center sticky top-0 z-10 ${getHeaderColor(status)}`}>
+      <div className={`p-3 rounded-t-xl border-b flex justify-between items-center shrink-0 ${getHeaderColor(status)}`}>
         <div className="flex items-center gap-2">
             <h2 className="font-bold text-sm uppercase tracking-wider">{title}</h2>
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${status === 'too_late' ? 'bg-red-500 text-white' : 'bg-white bg-opacity-50'}`}>
@@ -62,7 +62,7 @@ export const KanbanColumn = ({
         </button>
       </div>
       
-      <div className="p-3 flex-1 xl:overflow-y-auto scrollbar-hide">
+      <div className="p-3 flex-1 overflow-y-auto scrollbar-hide">
         {sortedItems.map(item => (
           <BondCard key={item.id} item={item} onClick={onItemClick} />
         ))}

@@ -11,12 +11,15 @@ import { StatsView } from './components/StatsView';
 import { KanbanColumn } from './components/KanbanColumn';
 import { TerminalStatesTable } from './components/TerminalStatesTable';
 import { ListView } from './components/ListView';
-import { useGoogleSheetData } from './hooks/useGoogleSheetData';
+import { useSupabaseData } from './hooks/useSupabaseData';
+// import { useGoogleSheetData } from './hooks/useGoogleSheetData'; // Deprecated
 
 export const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [view, setView] = useState<'board' | 'list' | 'stats'>('board');
-  const { data: items, setData, isConnected } = useGoogleSheetData(INITIAL_DATA);
+  
+  // Use Supabase for Realtime Data
+  const { data: items, setData, isConnected } = useSupabaseData(INITIAL_DATA);
   
   // Widget State
   const [autoTriggerRules, setAutoTriggerRules] = useState<AutoTriggerRule[]>(INITIAL_RULES);
@@ -118,7 +121,18 @@ export const App = () => {
         </div>
 
         <div className="p-4 border-t border-slate-800 hidden lg:block">
-            <div className="text-xs text-slate-500 mb-2">Connected as</div>
+            <div className="text-xs text-slate-500 mb-2">System Status</div>
+            <div className="flex items-center justify-between mb-3">
+                 <span className="text-sm font-medium text-slate-200">Data Feed</span>
+                 <div className="flex items-center gap-2">
+                     <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-orange-500'}`}></span>
+                     <span className={`text-xs ${isConnected ? 'text-green-400' : 'text-orange-400'}`}>
+                        {isConnected ? 'Supabase Live' : 'Demo Mode'}
+                     </span>
+                 </div>
+            </div>
+            
+            <div className="text-xs text-slate-500 mb-2 mt-4">Connected as</div>
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white">BT</div>
                 <div className="text-sm font-medium text-slate-200">BondTrader78</div>
@@ -146,14 +160,13 @@ export const App = () => {
            </div>
         </header>
 
-        {/* Content Area - Refactored for Single Scroll on Mobile */}
+        {/* Content Area */}
         {view === 'stats' ? (
             <StatsView />
         ) : (
-            // On XL: Flex Row, Overflow Hidden (Split Panes). On Mobile: Flex Col, Overflow Auto (Single Scroll).
             <div className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden relative">
                 
-                {/* Right Widget Panel - Reordered to First on Mobile */}
+                {/* Right Widget Panel */}
                 {view === 'board' && (
                     <div className="order-first xl:order-last w-full xl:w-80 bg-white border-b xl:border-b-0 xl:border-l border-gray-200 p-6 flex-shrink-0 xl:overflow-y-auto z-20 relative">
                         <AutoTriggerWidget 
@@ -215,7 +228,6 @@ export const App = () => {
                 <div className="flex-1 xl:overflow-y-auto p-4 lg:p-6 min-w-0">
                     {view === 'board' ? (
                     <div className="flex flex-col gap-6">
-                            {/* Top: Active Flow (Grid) - Mobile: Stacked, Auto Height. Desktop: Grid. */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
                                 <KanbanColumn 
                                     title="Scraped" 
@@ -237,7 +249,6 @@ export const App = () => {
                                 />
                             </div>
 
-                            {/* Bottom: Terminal States (Full Width Table) */}
                             <div className="flex flex-col shrink-0">
                                 <TerminalStatesTable 
                                     items={items.filter(i => i.status === 'passed' || i.status === 'too_late')}

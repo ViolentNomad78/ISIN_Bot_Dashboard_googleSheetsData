@@ -38,17 +38,27 @@ export const getHeaderColor = (status: Status) => {
 export const formatSheetDate = (val: any): string => {
     if (!val) return '';
     try {
+        const strVal = String(val);
         // If it's already DD.MM.YYYY, return it
-        if (typeof val === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(val)) return val;
+        if (/^\d{2}\.\d{2}\.\d{4}$/.test(strVal)) return strVal;
         
-        // Handle ISO string or Date object
+        // Try to regex parse ISO date (YYYY-MM-DD) directly to avoid timezone conversion
+        // Matches 2025-11-24T... or 2025-11-24
+        const isoMatch = strVal.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (isoMatch) {
+            const [_, y, m, d] = isoMatch;
+            return `${d}.${m}.${y}`;
+        }
+
+        // Fallback to Date object if format is weird
         const d = new Date(val);
-        if (isNaN(d.getTime())) return String(val);
+        if (isNaN(d.getTime())) return strVal;
 
         return d.toLocaleDateString('de-DE', {
             day: '2-digit',
             month: '2-digit',
-            year: 'numeric'
+            year: 'numeric',
+            timeZone: 'UTC'
         });
     } catch (e) {
         return String(val);
@@ -58,18 +68,33 @@ export const formatSheetDate = (val: any): string => {
 export const formatSheetTime = (val: any): string => {
     if (!val) return '';
     try {
-        // Handle ISO string (often 1899-12-30T... from Sheets time columns)
+        const strVal = String(val);
+        
+        // Try to extract time directly from ISO string (e.g. 1899-12-30T14:41:49.000Z)
+        // This regex looks for T followed by HH:MM:SS
+        const isoTimeMatch = strVal.match(/T(\d{2}):(\d{2}):(\d{2})/);
+        if (isoTimeMatch) {
+            const [_, h, m, s] = isoTimeMatch;
+            return `${h}:${m}:${s}`;
+        }
+
+        // If it's just raw HH:MM:SS
+        if (/^\d{2}:\d{2}:\d{2}/.test(strVal)) {
+            return strVal.split('.')[0];
+        }
+
+        // Fallback: Date object
         const d = new Date(val);
         if (!isNaN(d.getTime())) {
             return d.toLocaleTimeString('de-DE', {
                 hour: '2-digit',
                 minute: '2-digit',
-                second: '2-digit'
+                second: '2-digit',
+                timeZone: 'UTC'
             });
         }
         
-        // If it's a raw string like "14:30:00", just return it
-        return String(val).split('.')[0]; // remove milliseconds if present in string
+        return strVal.split('.')[0];
     } catch (e) {
         return String(val);
     }
