@@ -1,8 +1,9 @@
 
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { BookrunnerStat } from '../types';
-import { BANK_MAPPINGS } from '../mappings';
+import { BOOKRUNNER_MAPPINGS } from '../mappings';
 
 export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null, currencyFilter: string) => {
     const [stats, setStats] = useState<BookrunnerStat[]>([]);
@@ -51,7 +52,7 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                     
                     // 1. Normalize the Bookrunner Name
                     const rawNameLower = (br.name || '').toLowerCase().trim();
-                    const standardName = BANK_MAPPINGS[rawNameLower] || br.name || 'Unknown';
+                    const standardName = BOOKRUNNER_MAPPINGS[rawNameLower] || br.name || 'Unknown';
 
                     // 2. Filter Deals
                     const validDeals = junctionRows

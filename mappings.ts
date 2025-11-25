@@ -1,5 +1,6 @@
 
-export const BANK_MAPPINGS: Record<string, string> = {
+
+export const BOOKRUNNER_MAPPINGS: Record<string, string> = {
     'bnpp': 'BNP Paribas',
     'bnpp (b&d)': 'BNP Paribas',
     'bnpp (gc/b&d)': 'BNP Paribas',
