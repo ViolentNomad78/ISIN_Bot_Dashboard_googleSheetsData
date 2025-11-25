@@ -21,7 +21,7 @@ export const BookrunnersView = () => {
     const [sortField, setSortField] = useState<keyof BookrunnerStat>('dealCount');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     
-    const { stats, isLoading } = useBookrunnerStats(startDate, endDate, currency);
+    const { stats, currencies, isLoading } = useBookrunnerStats(startDate, endDate, currency);
 
     const handleSort = (field: keyof BookrunnerStat) => {
         if (sortField === field) {
@@ -52,6 +52,13 @@ export const BookrunnersView = () => {
 
     const maxDeals = Math.max(...stats.map(s => s.dealCount), 1);
     
+    // Calculate total unique ISINs to avoid double counting (since multiple bookrunners can be on one ISIN)
+    const uniqueISINs = new Set<string>();
+    stats.forEach(s => {
+        s.deals.forEach(d => uniqueISINs.add(d.isin));
+    });
+    const totalUniqueListings = uniqueISINs.size;
+    
     // Helper to handle date input changes (YYYY-MM-DD -> Date)
     const handleDateChange = (type: 'start' | 'end', val: string) => {
         const d = val ? new Date(val) : null;
@@ -62,7 +69,10 @@ export const BookrunnersView = () => {
     // Helper to format Date to YYYY-MM-DD for input value
     const formatDateForInput = (d: Date | null) => {
         if (!d) return '';
-        return d.toISOString().split('T')[0];
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     return (
@@ -102,8 +112,9 @@ export const BookrunnersView = () => {
                         onChange={(e) => setCurrency(e.target.value)}
                     >
                         <option value="all" className="text-black">All Currencies</option>
-                        <option value="EUR" className="text-black">EUR (€)</option>
-                        <option value="USD" className="text-black">USD ($)</option>
+                        {currencies.map(curr => (
+                            <option key={curr} value={curr} className="text-black">{curr}</option>
+                        ))}
                     </select>
 
                     {/* Date Range */}
@@ -143,9 +154,9 @@ export const BookrunnersView = () => {
                     <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Total Listings Found</span>
                         <div className="mt-2 text-3xl font-bold text-gray-800">
-                             {stats.reduce((acc, curr) => acc + curr.dealCount, 0)}
+                             {totalUniqueListings}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">In selected period</div>
+                        <div className="text-xs text-gray-400 mt-1">Unique ISINs in selected period</div>
                     </div>
                     <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Active Bookrunners</span>

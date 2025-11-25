@@ -1,12 +1,27 @@
 
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { BookrunnerStat } from '../types';
 import { BOOKRUNNER_MAPPINGS } from '../mappings';
 
+// Helper to normalize currency strings (e.g. '€' -> 'EUR')
+const normalizeCurrency = (c: string): string => {
+    if (!c) return 'UNKNOWN';
+    const upper = c.toUpperCase().trim();
+    if (upper === '€' || upper.includes('EUR')) return 'EUR';
+    if (upper === '$' || upper.includes('USD')) return 'USD';
+    if (upper === '£' || upper.includes('GBP')) return 'GBP';
+    if (upper === '¥' || upper.includes('JPY')) return 'JPY';
+    if (upper.includes('CHF')) return 'CHF';
+    if (upper.includes('AUD')) return 'AUD';
+    if (upper.includes('NOK')) return 'NOK';
+    if (upper.includes('SEK')) return 'SEK';
+    return upper;
+};
+
 export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null, currencyFilter: string) => {
     const [stats, setStats] = useState<BookrunnerStat[]>([]);
+    const [currencies, setCurrencies] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -38,13 +53,12 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
 
                 if (!data) {
                     setStats([]);
+                    setCurrencies([]);
                     return;
                 }
 
-                // Temporary Map to aggregate normalized banks
-                // Key = Standardized Name, Value = BookrunnerStat object
                 const aggregatedMap = new Map<string, BookrunnerStat>();
-
+                const foundCurrencies = new Set<string>();
                 let totalDealsInPeriod = 0;
 
                 data.forEach((br: any) => {
@@ -54,47 +68,52 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                     const rawNameLower = (br.name || '').toLowerCase().trim();
                     const standardName = BOOKRUNNER_MAPPINGS[rawNameLower] || br.name || 'Unknown';
 
-                    // 2. Filter Deals
-                    const validDeals = junctionRows
-                        .map((join: any) => join.bond_isins)
-                        .filter((bond: any) => !!bond)
-                        .filter((bond: any) => {
-                             // Currency Filter
-                             if (currencyFilter !== 'all') {
-                                 const c = (bond.currency || '').toUpperCase();
-                                 if (currencyFilter === 'EUR' && !c.includes('EUR') && c !== '€') return false;
-                                 if (currencyFilter === 'USD' && !c.includes('USD') && c !== '$') return false;
-                             }
+                    // 2. Process Deals
+                    const validDeals: any[] = [];
 
-                             // Date Filter
-                             let dealDate = new Date(bond.created_at);
-                             if (bond.email_at) {
-                                 const d = new Date(bond.email_at);
-                                 if (!isNaN(d.getTime())) {
-                                    dealDate = d;
-                                 }
-                             }
-                             
-                             if (startDate) {
-                                const start = new Date(startDate);
-                                start.setHours(0,0,0,0);
-                                if (dealDate < start) return false;
-                             }
-                             
-                             if (endDate) {
-                                 const end = new Date(endDate);
-                                 end.setHours(23, 59, 59, 999);
-                                 if (dealDate > end) return false;
-                             }
+                    junctionRows.forEach((join: any) => {
+                        const bond = join.bond_isins;
+                        if (!bond) return;
 
-                             return true;
-                        })
-                        .map((bond: any) => ({
+                        // Check Date Filter First
+                        let dealDate = new Date(bond.created_at);
+                        if (bond.email_at) {
+                            const d = new Date(bond.email_at);
+                            if (!isNaN(d.getTime())) {
+                                dealDate = d;
+                            }
+                        }
+
+                        if (startDate) {
+                            const start = new Date(startDate);
+                            start.setHours(0,0,0,0);
+                            if (dealDate < start) return;
+                        }
+                        
+                        if (endDate) {
+                            const end = new Date(endDate);
+                            end.setHours(23, 59, 59, 999);
+                            if (dealDate > end) return;
+                        }
+
+                        // Collect Currency (Normalized) - Capture ALL currencies present in this date range
+                        const rawCurrency = bond.currency || '';
+                        const normalizedCurr = normalizeCurrency(rawCurrency);
+                        foundCurrencies.add(normalizedCurr);
+
+                        // Check Currency Filter
+                        if (currencyFilter !== 'all') {
+                             if (normalizedCurr !== currencyFilter) return;
+                        }
+
+                        // If we passed filters, add to list
+                        validDeals.push({
                             isin: bond.isin,
                             date: bond.email_at ? new Date(bond.email_at).toLocaleDateString('de-DE') : new Date(bond.created_at).toLocaleDateString('de-DE'),
                             issuer: bond.issuer || 'Unknown',
-                            currency: bond.currency || '-'
-                        }));
+                            currency: rawCurrency === '€' ? 'EUR' : (rawCurrency === '$' ? 'USD' : normalizedCurr)
+                        });
+                    });
 
                     if (validDeals.length === 0) return;
 
@@ -107,10 +126,8 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                         existing.dealCount += validDeals.length;
                         
                         // Update lastActive if newer
-                        // (Simplified string comparison, ideally parse dates)
-                        if (existing.deals[0].date && (!existing.lastActive || existing.deals[0].date > existing.lastActive)) {
-                            // existing.lastActive = existing.deals[0].date;
-                            // Note: We'll resort deals later anyway
+                        if (validDeals[0].date && (!existing.lastActive || validDeals[0].date > existing.lastActive)) {
+                             // Keep logic simple for now
                         }
                     } else {
                         aggregatedMap.set(standardName, {
@@ -127,21 +144,19 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                 // Convert Map to Array
                 const activeStats = Array.from(aggregatedMap.values());
                 
-                // Calculate Market Share & Sort
+                // Calculate Market Share
                 activeStats.forEach(stat => {
                     stat.marketShare = totalDealsInPeriod > 0 
                         ? (stat.dealCount / totalDealsInPeriod) * 100 
                         : 0;
-                    
-                    // Sort deals by date desc (simple string comparison for DE format DD.MM.YYYY works poorly, 
-                    // ideally we keep raw date objects, but for now relying on insertion order or simple reverse)
-                    // We simply take the first one as "lastActive" based on DB order usually being chronological
                 });
 
                 // Sort Bookrunners by Deal Count descending
                 activeStats.sort((a, b) => b.dealCount - a.dealCount);
 
                 setStats(activeStats);
+                setCurrencies(Array.from(foundCurrencies).sort());
+
             } catch (err) {
                 console.error("Unexpected error fetching bookrunners:", err instanceof Error ? err.message : JSON.stringify(err));
             } finally {
@@ -162,5 +177,5 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
         };
     }, [startDate, endDate, currencyFilter]);
 
-    return { stats, isLoading };
+    return { stats, currencies, isLoading };
 };
