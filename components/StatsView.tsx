@@ -120,7 +120,7 @@ export const StatsView = () => {
                          <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500 font-medium">Filter Currency:</span>
                             <select 
-                                className="border rounded-md text-xs px-2 py-1 bg-white outline-none focus:ring-1 ring-gray-300"
+                                className="border rounded-md text-xs px-2 py-1 bg-white text-gray-900 outline-none focus:ring-1 ring-gray-300"
                                 value={currencyFilter}
                                 onChange={(e) => setCurrencyFilter(e.target.value as any)}
                             >

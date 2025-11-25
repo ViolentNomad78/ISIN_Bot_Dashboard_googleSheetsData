@@ -81,12 +81,12 @@ export const BookrunnersView = () => {
                     
                     {/* Search */}
                     <div className="relative group w-full md:w-64">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#9F8A79]">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-[#9F8A79]">
                             <Icons.Search />
                         </div>
                         <input 
                             type="text" 
-                            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#9F8A79] focus:border-transparent transition-all bg-gray-50 text-gray-900 focus:bg-white"
+                            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#9F8A79] focus:border-transparent transition-all bg-white text-black placeholder-gray-400"
                             placeholder="Search Bookrunner..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -97,22 +97,22 @@ export const BookrunnersView = () => {
 
                     {/* Currency Filter */}
                     <select 
-                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-900 focus:bg-white focus:ring-2 focus:ring-[#9F8A79] outline-none"
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-black focus:ring-2 focus:ring-[#9F8A79] outline-none"
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
                     >
-                        <option value="all">All Currencies</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="USD">USD ($)</option>
+                        <option value="all" className="text-black">All Currencies</option>
+                        <option value="EUR" className="text-black">EUR (€)</option>
+                        <option value="USD" className="text-black">USD ($)</option>
                     </select>
 
                     {/* Date Range */}
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-1">
+                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1">
                         <div className="flex items-center gap-2 px-2">
-                             <span className="text-gray-400"><Icons.Calendar /></span>
+                             <span className="text-gray-500"><Icons.Calendar /></span>
                              <input 
                                 type="date" 
-                                className="bg-transparent text-sm text-gray-700 outline-none w-32"
+                                className="bg-transparent text-sm text-black outline-none w-32"
                                 value={formatDateForInput(startDate)}
                                 onChange={(e) => handleDateChange('start', e.target.value)}
                              />
@@ -121,7 +121,7 @@ export const BookrunnersView = () => {
                         <div className="px-2">
                              <input 
                                 type="date" 
-                                className="bg-transparent text-sm text-gray-700 outline-none w-32"
+                                className="bg-transparent text-sm text-black outline-none w-32"
                                 value={formatDateForInput(endDate)}
                                 onChange={(e) => handleDateChange('end', e.target.value)}
                              />

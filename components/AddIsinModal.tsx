@@ -40,7 +40,7 @@ export const AddIsinModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onC
                             <input 
                                 required 
                                 type="text" 
-                                className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#9F8A79] outline-none" 
+                                className="w-full border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-[#9F8A79] outline-none" 
                                 value={formData.isin}
                                 onChange={e => setFormData({...formData, isin: e.target.value})}
                                 placeholder="XS..."
@@ -51,7 +51,7 @@ export const AddIsinModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onC
                             <input 
                                 required 
                                 type="text" 
-                                className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#9F8A79] outline-none" 
+                                className="w-full border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-[#9F8A79] outline-none" 
                                 value={formData.issuer}
                                 onChange={e => setFormData({...formData, issuer: e.target.value})}
                                 placeholder="Issuer Name"
@@ -65,7 +65,7 @@ export const AddIsinModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onC
                                 required 
                                 type="number" 
                                 step="1"
-                                className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#9F8A79] outline-none" 
+                                className="w-full border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-[#9F8A79] outline-none" 
                                 value={formData.amount}
                                 onChange={e => setFormData({...formData, amount: Number(e.target.value)})}
                             />
@@ -73,7 +73,7 @@ export const AddIsinModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onC
                         <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Currency</label>
                             <select 
-                                className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#9F8A79] outline-none" 
+                                className="w-full border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-[#9F8A79] outline-none" 
                                 value={formData.currency}
                                 onChange={e => setFormData({...formData, currency: e.target.value as any})}
                             >
@@ -84,7 +84,7 @@ export const AddIsinModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onC
                         <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Trigger</label>
                             <select 
-                                className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#9F8A79] outline-none" 
+                                className="w-full border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-[#9F8A79] outline-none" 
                                 value={formData.listingTrigger}
                                 onChange={e => setFormData({...formData, listingTrigger: e.target.value})}
                             >

@@ -70,15 +70,15 @@ export const formatSheetTime = (val: any): string => {
     try {
         const strVal = String(val);
         
-        // Try to extract time directly from ISO string (e.g. 1899-12-30T14:41:49.000Z)
-        // This regex looks for T followed by HH:MM:SS
-        const isoTimeMatch = strVal.match(/T(\d{2}):(\d{2}):(\d{2})/);
+        // Try to extract time directly from ISO string (e.g. 1899-12-30T14:41:49.000Z or 2025-11-25 21:33:38.246)
+        // This regex looks for T OR space followed by HH:MM:SS
+        const isoTimeMatch = strVal.match(/[T\s](\d{2}):(\d{2}):(\d{2})/);
         if (isoTimeMatch) {
             const [_, h, m, s] = isoTimeMatch;
             return `${h}:${m}:${s}`;
         }
 
-        // If it's just raw HH:MM:SS
+        // If it's just raw HH:MM:SS at start of string
         if (/^\d{2}:\d{2}:\d{2}/.test(strVal)) {
             return strVal.split('.')[0];
         }
@@ -90,7 +90,7 @@ export const formatSheetTime = (val: any): string => {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
-                timeZone: 'UTC'
+                timeZone: 'UTC' // Prefer UTC to avoid shifting if timestamp is already UTC
             });
         }
         
