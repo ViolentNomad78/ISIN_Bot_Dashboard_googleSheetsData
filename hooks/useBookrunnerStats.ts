@@ -1,9 +1,7 @@
-
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { BookrunnerStat } from '../types';
-import { BOOKRUNNER_MAPPINGS } from '../mappings';
+import { formatSheetDate } from '../utils';
 
 // Helper to normalize currency strings (e.g. '€' -> 'EUR')
 const normalizeCurrency = (c: string): string => {
@@ -34,57 +32,64 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchBookrunners = async () => {
+        const fetchBookrunnersAndMappings = async () => {
             setIsLoading(true);
             try {
-                // Fetch bookrunners and their related bond_isins via the junction table bond_bookrunners
-                // CHANGED: Updated to scraped_bookrunners, scraped_bond_bookrunners, scraped_bond_isins
-                const { data, error } = await supabase
-                    .from('scraped_bookrunners')
-                    .select(`
-                        id,
-                        name,
-                        scraped_bond_bookrunners (
-                            scraped_bond_isins (
-                                isin,
-                                created_at,
-                                email_at,
-                                issuer,
-                                currency
+                // Parallel fetch: Bookrunner Data AND Mappings from DB
+                const [bookrunnersResponse, mappingsResponse] = await Promise.all([
+                    supabase
+                        .from('scraped_bookrunners')
+                        .select(`
+                            id,
+                            name,
+                            scraped_bond_bookrunners (
+                                scraped_bond_isins (
+                                    isin,
+                                    created_at,
+                                    email_at,
+                                    issuer,
+                                    currency
+                                )
                             )
-                        )
-                    `);
+                        `),
+                    supabase
+                        .from('scraped_bookrunners_mapping')
+                        .select('alias, standard_name')
+                ]);
 
-                if (error) {
-                    console.error("Error fetching bookrunners:", JSON.stringify(error, null, 2));
+                if (bookrunnersResponse.error) {
+                    console.error("Error fetching bookrunners:", JSON.stringify(bookrunnersResponse.error, null, 2));
                     setIsLoading(false);
                     return;
                 }
 
-                if (!data) {
-                    setStats([]);
-                    setCurrencies([]);
-                    return;
-                }
+                const bookrunnerData = bookrunnersResponse.data || [];
+                const mappingData = mappingsResponse.data || [];
+
+                // 1. Create a quick lookup map for mappings (lowercase alias -> standard name)
+                const dbMappings: Record<string, string> = {};
+                mappingData.forEach((row: any) => {
+                    if (row.alias && row.standard_name) {
+                        dbMappings[row.alias.toLowerCase()] = row.standard_name;
+                    }
+                });
 
                 const aggregatedMap = new Map<string, BookrunnerStat>();
                 const allFoundCurrencies = new Set<string>(); // Currencies from ALL deals (ignoring date filter)
                 let totalDealsInPeriod = 0;
 
-                data.forEach((br: any) => {
-                    // CHANGED: Access property with new table name
+                bookrunnerData.forEach((br: any) => {
                     const junctionRows = br.scraped_bond_bookrunners || [];
                     
-                    // 1. Normalize the Bookrunner Name
+                    // 2. Normalize the Bookrunner Name using DB mappings
                     const rawNameLower = (br.name || '').toLowerCase().trim();
-                    // Try mapping first, then fallback to Title Case of the original name
-                    const standardName = BOOKRUNNER_MAPPINGS[rawNameLower] || toTitleCase(br.name || 'Unknown');
+                    // Try DB mapping first, then fallback to Title Case
+                    const standardName = dbMappings[rawNameLower] || toTitleCase(br.name || 'Unknown');
 
-                    // 2. Process Deals
+                    // 3. Process Deals
                     const validDeals: any[] = [];
 
                     junctionRows.forEach((join: any) => {
-                        // CHANGED: Access property with new table name
                         const bond = join.scraped_bond_isins;
                         if (!bond || !bond.isin) return;
 
@@ -92,7 +97,7 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                         const rawCurrency = bond.currency || '';
                         const normalizedCurr = normalizeCurrency(rawCurrency);
                         
-                        // Collect for dropdown (Available currencies should reflect entire DB, or at least unfiltered scope)
+                        // Collect for dropdown
                         if (normalizedCurr !== 'UNKNOWN') {
                             allFoundCurrencies.add(normalizedCurr);
                         }
@@ -116,7 +121,7 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                         
                         if (endDate) {
                             const end = new Date(endDate);
-                            end.setHours(23, 59, 59, 999);
+                            end.setHours(23, 59, 59, 99);
                             if (dealDate > end) return;
                         }
 
@@ -128,7 +133,8 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                         // Add to list
                         validDeals.push({
                             isin: bond.isin,
-                            date: bond.email_at ? new Date(bond.email_at).toLocaleDateString('de-DE') : new Date(bond.created_at).toLocaleDateString('de-DE'),
+                            // Use shared formatter for consistency (Berlin Time)
+                            date: formatSheetDate(bond.email_at || bond.created_at),
                             issuer: bond.issuer || 'Unknown',
                             currency: rawCurrency === '€' ? 'EUR' : (rawCurrency === '$' ? 'USD' : normalizedCurr)
                         });
@@ -138,15 +144,18 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
 
                     totalDealsInPeriod += validDeals.length;
 
-                    // 3. Aggregate into the Map
+                    // 4. Aggregate into the Map
                     if (aggregatedMap.has(standardName)) {
                         const existing = aggregatedMap.get(standardName)!;
                         existing.deals.push(...validDeals);
                         existing.dealCount += validDeals.length;
                         
-                        // Update lastActive if newer
-                        if (validDeals[0].date && (!existing.lastActive || validDeals[0].date > existing.lastActive)) {
-                             // Keep logic simple for now
+                        // Update lastActive if newer (string comparison works for YYYY-MM-DD, 
+                        // but here we have DD.MM.YYYY. 
+                        // For perfect sorting we might want raw dates, but this is display logic mostly)
+                        // Simplified check:
+                        if (validDeals[0].date) {
+                             existing.lastActive = validDeals[0].date;
                         }
                     } else {
                         aggregatedMap.set(standardName, {
@@ -183,13 +192,13 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
             }
         };
 
-        fetchBookrunners();
+        fetchBookrunnersAndMappings();
 
-        // CHANGED: Updated to scraped_bond_isins and scraped_bond_bookrunners
         const channel = supabase
             .channel('bookrunners_realtime_tracker')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'scraped_bond_isins' }, () => fetchBookrunners())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'scraped_bond_bookrunners' }, () => fetchBookrunners())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'scraped_bond_isins' }, () => fetchBookrunnersAndMappings())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'scraped_bond_bookrunners' }, () => fetchBookrunnersAndMappings())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'scraped_bookrunners_mapping' }, () => fetchBookrunnersAndMappings())
             .subscribe();
 
         return () => {

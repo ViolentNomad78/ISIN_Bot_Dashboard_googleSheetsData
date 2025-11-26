@@ -35,6 +35,12 @@ export const BondCard: React.FC<{ item: BondItem, onClick: (item: BondItem) => v
       return (fallback || 0).toLocaleString('de-DE');
   };
 
+  const handleBloombergAction = (e: React.MouseEvent, action: string) => {
+      e.stopPropagation();
+      console.log(`Calling Bloomberg Macro: ${action} for ${item.isin}`);
+      // Integration point for Bloomberg Terminal macros
+  };
+
   return (
     <div 
       onClick={() => onClick(item)}
@@ -63,6 +69,32 @@ export const BondCard: React.FC<{ item: BondItem, onClick: (item: BondItem) => v
       <h3 className={`font-semibold text-sm mb-1 truncate ${isTooLate ? 'text-white' : 'text-gray-900'}`}>{item.isin}</h3>
       <p className={`text-xs mb-2 line-clamp-2 ${isTooLate ? 'text-red-100' : 'text-gray-600'}`}>{item.issuer}</p>
       
+      {/* Bloomberg Action Buttons */}
+      <div className="flex gap-2 mb-3">
+          <button 
+            onClick={(e) => handleBloombergAction(e, 'ALLQ')}
+            className={`
+                px-2 py-0.5 text-[10px] font-bold rounded border transition-colors
+                ${isTooLate 
+                    ? 'bg-red-900/40 border-red-400/30 text-white hover:bg-red-900/60' 
+                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-300'}
+            `}
+          >
+            ALLQ
+          </button>
+          <button 
+            onClick={(e) => handleBloombergAction(e, 'DES')}
+            className={`
+                px-2 py-0.5 text-[10px] font-bold rounded border transition-colors
+                ${isTooLate 
+                    ? 'bg-red-900/40 border-red-400/30 text-white hover:bg-red-900/60' 
+                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-300'}
+            `}
+          >
+            DES
+          </button>
+      </div>
+
       <div className="flex justify-between items-end mt-auto">
         <div className="flex flex-col">
             <div className={`text-sm font-mono font-medium ${isTooLate ? 'text-white' : 'text-gray-800'}`}>

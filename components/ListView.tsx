@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { BondItem } from '../types';
 import { getStatusColor } from '../utils';
+import { Icons } from '../Icons';
 
 export const ListView = ({ items }: { items: BondItem[] }) => {
-    const [sortField, setSortField] = useState<keyof BondItem>('time');
+    // Default to 'date' descending (newest first)
+    const [sortField, setSortField] = useState<keyof BondItem>('date');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
     const handleSort = (field: keyof BondItem) => {
@@ -11,7 +13,7 @@ export const ListView = ({ items }: { items: BondItem[] }) => {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
             setSortField(field);
-            setSortDirection('asc');
+            setSortDirection('desc');
         }
     };
 
@@ -61,20 +63,61 @@ export const ListView = ({ items }: { items: BondItem[] }) => {
         return 0;
     });
 
+    const renderSortIndicator = (field: keyof BondItem) => {
+        if (sortField !== field) return <div className="w-4 h-4" />;
+        return (
+            <div className="text-gray-500">
+                {sortDirection === 'asc' ? <Icons.ArrowUp /> : <Icons.ArrowDown />}
+            </div>
+        );
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
             <div className="overflow-auto flex-1">
                 <table className="w-full text-sm text-left">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b sticky top-0 z-10">
                         <tr>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('status')}>Status</th>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('date')}>Email Date/Time</th>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('isin')}>ISIN</th>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('issuer')}>Issuer</th>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('currency')}>Currency</th>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 text-right" onClick={() => handleSort('minSize')}>Min. Size</th>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100">Type</th>
-                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100">Trigger</th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none" onClick={() => handleSort('status')}>
+                                <div className="flex items-center gap-1">
+                                    Status {renderSortIndicator('status')}
+                                </div>
+                            </th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none" onClick={() => handleSort('date')}>
+                                <div className="flex items-center gap-1">
+                                    Email Date/Time {renderSortIndicator('date')}
+                                </div>
+                            </th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none" onClick={() => handleSort('isin')}>
+                                <div className="flex items-center gap-1">
+                                    ISIN {renderSortIndicator('isin')}
+                                </div>
+                            </th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none" onClick={() => handleSort('issuer')}>
+                                <div className="flex items-center gap-1">
+                                    Issuer {renderSortIndicator('issuer')}
+                                </div>
+                            </th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none" onClick={() => handleSort('currency')}>
+                                <div className="flex items-center gap-1">
+                                    Currency {renderSortIndicator('currency')}
+                                </div>
+                            </th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none text-right" onClick={() => handleSort('minSize')}>
+                                <div className="flex items-center justify-end gap-1">
+                                    Min. Size {renderSortIndicator('minSize')}
+                                </div>
+                            </th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none" onClick={() => handleSort('type')}>
+                                <div className="flex items-center gap-1">
+                                    Type {renderSortIndicator('type')}
+                                </div>
+                            </th>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-gray-100 transition-colors select-none" onClick={() => handleSort('listingTrigger')}>
+                                <div className="flex items-center gap-1">
+                                    Trigger {renderSortIndicator('listingTrigger')}
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>

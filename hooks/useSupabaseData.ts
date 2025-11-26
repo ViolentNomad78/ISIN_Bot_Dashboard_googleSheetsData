@@ -20,8 +20,11 @@ const mapSupabaseItemToBondItem = (item: any): BondItem => ({
     minSize: item.min_size,
     submissionPlace: item.submission_place,
     turnaroundTime: formatSheetTime(item.turnaround_time),
-    triggeredDate: item.triggered_at ? new Date(item.triggered_at).toLocaleDateString() : undefined,
-    submittedDate: item.submitted_at ? new Date(item.submitted_at).toLocaleDateString() : undefined,
+    // Use formatSheetDate/Time to ensure consistent Berlin Timezone
+    triggeredDate: item.triggered_at ? formatSheetDate(item.triggered_at) : undefined,
+    triggeredTime: item.triggered_at ? formatSheetTime(item.triggered_at) : undefined,
+    submittedDate: item.submitted_at ? formatSheetDate(item.submitted_at) : undefined,
+    submittedTime: item.submitted_at ? formatSheetTime(item.submitted_at) : undefined,
 });
 
 export const useSupabaseData = (initialData: BondItem[]) => {
@@ -36,7 +39,6 @@ export const useSupabaseData = (initialData: BondItem[]) => {
 
         const fetchInitialData = async () => {
             try {
-                // CHANGED: Updated to scraped_bond_isins
                 const { data: bonds, error } = await supabase
                     .from('scraped_bond_isins')
                     .select('*')
@@ -61,7 +63,6 @@ export const useSupabaseData = (initialData: BondItem[]) => {
         fetchInitialData();
 
         // Subscribe to Realtime Changes
-        // CHANGED: Updated to scraped_bond_isins
         const channel = supabase
             .channel('bond_isins_realtime')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'scraped_bond_isins' }, (payload) => {

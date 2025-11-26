@@ -38,28 +38,29 @@ export const getHeaderColor = (status: Status) => {
 export const formatSheetDate = (val: any): string => {
     if (!val) return '';
     try {
+        // First try to parse as a standard date object to handle Timezone conversion correctly
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleDateString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                timeZone: 'Europe/Berlin'
+            });
+        }
+
         const strVal = String(val);
-        // If it's already DD.MM.YYYY, return it
+        // If it's already DD.MM.YYYY, return it (assume it's already formatted)
         if (/^\d{2}\.\d{2}\.\d{4}$/.test(strVal)) return strVal;
         
-        // Try to regex parse ISO date (YYYY-MM-DD) directly to avoid timezone conversion
-        // Matches 2025-11-24T... or 2025-11-24
+        // Try to regex parse ISO date (YYYY-MM-DD) if Date() failed
         const isoMatch = strVal.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (isoMatch) {
             const [_, y, m, d] = isoMatch;
             return `${d}.${m}.${y}`;
         }
 
-        // Fallback to Date object if format is weird
-        const d = new Date(val);
-        if (isNaN(d.getTime())) return strVal;
-
-        return d.toLocaleDateString('de-DE', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            timeZone: 'UTC'
-        });
+        return String(val);
     } catch (e) {
         return String(val);
     }
@@ -68,9 +69,21 @@ export const formatSheetDate = (val: any): string => {
 export const formatSheetTime = (val: any): string => {
     if (!val) return '';
     try {
+        // First try to parse as a standard date object to handle Timezone conversion correctly
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleTimeString('de-DE', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'Europe/Berlin'
+            });
+        }
+
         const strVal = String(val);
         
-        // Try to extract time directly from ISO string (e.g. 1899-12-30T14:41:49.000Z or 2025-11-25 21:33:38.246)
+        // Fallback: extract time directly if it looks like ISO but Date failed, 
+        // or if it's just a time string.
         // This regex looks for T OR space followed by HH:MM:SS
         const isoTimeMatch = strVal.match(/[T\s](\d{2}):(\d{2}):(\d{2})/);
         if (isoTimeMatch) {
@@ -81,17 +94,6 @@ export const formatSheetTime = (val: any): string => {
         // If it's just raw HH:MM:SS at start of string
         if (/^\d{2}:\d{2}:\d{2}/.test(strVal)) {
             return strVal.split('.')[0];
-        }
-
-        // Fallback: Date object
-        const d = new Date(val);
-        if (!isNaN(d.getTime())) {
-            return d.toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                timeZone: 'UTC' // Prefer UTC to avoid shifting if timestamp is already UTC
-            });
         }
         
         return strVal.split('.')[0];
