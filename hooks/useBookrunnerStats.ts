@@ -29,13 +29,14 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
             setIsLoading(true);
             try {
                 // Fetch bookrunners and their related bond_isins via the junction table bond_bookrunners
+                // CHANGED: Updated to scraped_bookrunners, scraped_bond_bookrunners, scraped_bond_isins
                 const { data, error } = await supabase
-                    .from('bookrunners')
+                    .from('scraped_bookrunners')
                     .select(`
                         id,
                         name,
-                        bond_bookrunners (
-                            bond_isins (
+                        scraped_bond_bookrunners (
+                            scraped_bond_isins (
                                 isin,
                                 created_at,
                                 email_at,
@@ -58,11 +59,12 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                 }
 
                 const aggregatedMap = new Map<string, BookrunnerStat>();
-                const foundCurrencies = new Set<string>();
+                const allFoundCurrencies = new Set<string>(); // Currencies from ALL deals (ignoring date filter)
                 let totalDealsInPeriod = 0;
 
                 data.forEach((br: any) => {
-                    const junctionRows = br.bond_bookrunners || [];
+                    // CHANGED: Access property with new table name
+                    const junctionRows = br.scraped_bond_bookrunners || [];
                     
                     // 1. Normalize the Bookrunner Name
                     const rawNameLower = (br.name || '').toLowerCase().trim();
@@ -72,10 +74,22 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                     const validDeals: any[] = [];
 
                     junctionRows.forEach((join: any) => {
-                        const bond = join.bond_isins;
-                        if (!bond) return;
+                        // CHANGED: Access property with new table name
+                        const bond = join.scraped_bond_isins;
+                        if (!bond || !bond.isin) return;
 
-                        // Check Date Filter First
+                        // Normalize Currency
+                        const rawCurrency = bond.currency || '';
+                        const normalizedCurr = normalizeCurrency(rawCurrency);
+                        
+                        // Collect for dropdown (Available currencies should reflect entire DB, or at least unfiltered scope)
+                        if (normalizedCurr !== 'UNKNOWN') {
+                            allFoundCurrencies.add(normalizedCurr);
+                        }
+
+                        // --- APPLY FILTERS ---
+
+                        // Date Filter
                         let dealDate = new Date(bond.created_at);
                         if (bond.email_at) {
                             const d = new Date(bond.email_at);
@@ -96,17 +110,12 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                             if (dealDate > end) return;
                         }
 
-                        // Collect Currency (Normalized) - Capture ALL currencies present in this date range
-                        const rawCurrency = bond.currency || '';
-                        const normalizedCurr = normalizeCurrency(rawCurrency);
-                        foundCurrencies.add(normalizedCurr);
-
-                        // Check Currency Filter
+                        // Currency Filter
                         if (currencyFilter !== 'all') {
                              if (normalizedCurr !== currencyFilter) return;
                         }
 
-                        // If we passed filters, add to list
+                        // Add to list
                         validDeals.push({
                             isin: bond.isin,
                             date: bond.email_at ? new Date(bond.email_at).toLocaleDateString('de-DE') : new Date(bond.created_at).toLocaleDateString('de-DE'),
@@ -155,7 +164,7 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                 activeStats.sort((a, b) => b.dealCount - a.dealCount);
 
                 setStats(activeStats);
-                setCurrencies(Array.from(foundCurrencies).sort());
+                setCurrencies(Array.from(allFoundCurrencies).sort());
 
             } catch (err) {
                 console.error("Unexpected error fetching bookrunners:", err instanceof Error ? err.message : JSON.stringify(err));
@@ -166,10 +175,11 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
 
         fetchBookrunners();
 
+        // CHANGED: Updated to scraped_bond_isins and scraped_bond_bookrunners
         const channel = supabase
             .channel('bookrunners_realtime_tracker')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bond_isins' }, () => fetchBookrunners())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bond_bookrunners' }, () => fetchBookrunners())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'scraped_bond_isins' }, () => fetchBookrunners())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'scraped_bond_bookrunners' }, () => fetchBookrunners())
             .subscribe();
 
         return () => {

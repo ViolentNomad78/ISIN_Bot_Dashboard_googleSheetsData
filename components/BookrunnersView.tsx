@@ -53,9 +53,14 @@ export const BookrunnersView = () => {
     const maxDeals = Math.max(...stats.map(s => s.dealCount), 1);
     
     // Calculate total unique ISINs to avoid double counting (since multiple bookrunners can be on one ISIN)
+    // Filter out empty strings to be safe
     const uniqueISINs = new Set<string>();
     stats.forEach(s => {
-        s.deals.forEach(d => uniqueISINs.add(d.isin));
+        s.deals.forEach(d => {
+            if (d.isin && d.isin.trim()) {
+                uniqueISINs.add(d.isin.trim());
+            }
+        });
     });
     const totalUniqueListings = uniqueISINs.size;
     
@@ -107,13 +112,13 @@ export const BookrunnersView = () => {
 
                     {/* Currency Filter */}
                     <select 
-                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-black focus:ring-2 focus:ring-[#9F8A79] outline-none"
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-900 focus:ring-2 focus:ring-[#9F8A79] outline-none"
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
                     >
-                        <option value="all" className="text-black">All Currencies</option>
+                        <option value="all" className="text-gray-900">All Currencies</option>
                         {currencies.map(curr => (
-                            <option key={curr} value={curr} className="text-black">{curr}</option>
+                            <option key={curr} value={curr} className="text-gray-900">{curr}</option>
                         ))}
                     </select>
 
@@ -152,18 +157,18 @@ export const BookrunnersView = () => {
                 <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Total Listings Found</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Unique Listings</span>
                         <div className="mt-2 text-3xl font-bold text-gray-800">
                              {totalUniqueListings}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">Unique ISINs in selected period</div>
+                        <div className="text-xs text-gray-400 mt-1">Found in selected date range</div>
                     </div>
                     <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Active Bookrunners</span>
                         <div className="mt-2 text-3xl font-bold text-blue-600">
                              {filteredStats.length}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">Matches search criteria</div>
+                        <div className="text-xs text-gray-400 mt-1">Participated in deals</div>
                     </div>
                     <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-5 rounded-xl border border-slate-700 shadow-sm text-white relative overflow-hidden">
                          <div className="relative z-10">

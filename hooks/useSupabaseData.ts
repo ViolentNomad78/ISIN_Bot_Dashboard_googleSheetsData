@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { BondItem } from '../types';
 import { supabase } from '../supabaseClient';
 import { formatSheetDate, formatSheetTime } from '../utils';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../data';
+import { SUPABASE_URL } from '../data';
 
 // Helper to map raw DB row to application type
 const mapSupabaseItemToBondItem = (item: any): BondItem => ({
@@ -36,8 +36,9 @@ export const useSupabaseData = (initialData: BondItem[]) => {
 
         const fetchInitialData = async () => {
             try {
+                // CHANGED: Updated to scraped_bond_isins
                 const { data: bonds, error } = await supabase
-                    .from('bond_isins')
+                    .from('scraped_bond_isins')
                     .select('*')
                     .order('created_at', { ascending: false });
 
@@ -60,19 +61,20 @@ export const useSupabaseData = (initialData: BondItem[]) => {
         fetchInitialData();
 
         // Subscribe to Realtime Changes
+        // CHANGED: Updated to scraped_bond_isins
         const channel = supabase
             .channel('bond_isins_realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bond_isins' }, (payload) => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'scraped_bond_isins' }, (payload) => {
                 console.log('Realtime INSERT received:', payload);
                 const newItem = mapSupabaseItemToBondItem(payload.new);
                 setData(prev => [newItem, ...prev]);
             })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bond_isins' }, (payload) => {
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scraped_bond_isins' }, (payload) => {
                 console.log('Realtime UPDATE received:', payload);
                 const updatedItem = mapSupabaseItemToBondItem(payload.new);
                 setData(prev => prev.map(item => item.isin === updatedItem.isin ? updatedItem : item));
             })
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'bond_isins' }, (payload) => {
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'scraped_bond_isins' }, (payload) => {
                 console.log('Realtime DELETE received');
                 // For delete, we might need ID. If ID is present in payload.old (requires full replica identity), use it.
                 // Otherwise, simple refetch to be safe.
