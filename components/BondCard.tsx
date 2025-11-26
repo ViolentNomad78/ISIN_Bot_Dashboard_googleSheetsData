@@ -41,6 +41,13 @@ export const BondCard: React.FC<{ item: BondItem, onClick: (item: BondItem) => v
       // Integration point for Bloomberg Terminal macros
   };
 
+  const btnClass = `
+      px-2 py-0.5 text-[10px] font-bold rounded border transition-colors
+      ${isTooLate 
+          ? 'bg-red-900/40 border-red-400/30 text-white hover:bg-red-900/60' 
+          : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-300'}
+  `;
+
   return (
     <div 
       onClick={() => onClick(item)}
@@ -71,28 +78,8 @@ export const BondCard: React.FC<{ item: BondItem, onClick: (item: BondItem) => v
       
       {/* Bloomberg Action Buttons */}
       <div className="flex gap-2 mb-3">
-          <button 
-            onClick={(e) => handleBloombergAction(e, 'ALLQ')}
-            className={`
-                px-2 py-0.5 text-[10px] font-bold rounded border transition-colors
-                ${isTooLate 
-                    ? 'bg-red-900/40 border-red-400/30 text-white hover:bg-red-900/60' 
-                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-300'}
-            `}
-          >
-            ALLQ
-          </button>
-          <button 
-            onClick={(e) => handleBloombergAction(e, 'DES')}
-            className={`
-                px-2 py-0.5 text-[10px] font-bold rounded border transition-colors
-                ${isTooLate 
-                    ? 'bg-red-900/40 border-red-400/30 text-white hover:bg-red-900/60' 
-                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-300'}
-            `}
-          >
-            DES
-          </button>
+          <button onClick={(e) => handleBloombergAction(e, 'ALLQ')} className={btnClass}>ALLQ</button>
+          <button onClick={(e) => handleBloombergAction(e, 'DES')} className={btnClass}>DES</button>
       </div>
 
       <div className="flex justify-between items-end mt-auto">

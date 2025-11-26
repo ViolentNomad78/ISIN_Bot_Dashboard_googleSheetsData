@@ -89,9 +89,9 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onClose();
+    const handleBloombergAction = (action: string) => {
+        console.log(`Calling Bloomberg Macro: ${action} for ${formData.isin}`);
+        // Integration point for Bloomberg Terminal macros
     };
 
     // Helper to format the size with dots (de-DE) if it is a plain number
@@ -123,8 +123,28 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
                 
                 <div className="p-6">
                     <div className="mb-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-1">{formData.isin}</h2>
-                        <p className="text-gray-500 text-sm">{formData.issuer}</p>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900 mb-1">{formData.isin}</h2>
+                                <p className="text-gray-500 text-sm">{formData.issuer}</p>
+                            </div>
+                            <div className={`px-3 py-1 text-xs font-bold rounded border ${getStatusColor(formData.status)}`}>
+                                 {formData.status.toUpperCase().replace('_', ' ')}
+                            </div>
+                        </div>
+                        
+                        {/* Bloomberg Action Buttons */}
+                        <div className="flex gap-2 mt-4">
+                            {['ALLQ', 'DES'].map(action => (
+                                <button
+                                    key={action}
+                                    onClick={() => handleBloombergAction(action)}
+                                    className="px-3 py-1 text-xs font-bold rounded border bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-300 transition-colors"
+                                >
+                                    {action}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-6">
@@ -135,21 +155,17 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
                              </div>
                          </div>
                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                             <div className="text-xs text-gray-500 uppercase font-bold mb-1">Status</div>
-                             <div className={`inline-block px-2 py-0.5 text-xs font-bold rounded border ${getStatusColor(formData.status)}`}>
-                                 {formData.status.toUpperCase()}
+                             <div className="text-xs text-gray-500 uppercase font-bold mb-1">Listing Trigger</div>
+                             <div className="font-medium text-gray-800">
+                                 {formData.listingTrigger || '-'}
                              </div>
                          </div>
                     </div>
                     
-                    <div className="space-y-2 mb-8 text-sm text-gray-600">
+                    <div className="space-y-2 mb-8 text-sm text-gray-600 border-t border-gray-100 pt-4">
                         <div className="flex justify-between">
-                            <span>Email Time:</span>
+                            <span>Email Received:</span>
                             <span className="font-medium text-gray-900">{formData.date} {formData.time}</span>
-                        </div>
-                        <div className="flex justify-between">
-                             <span>Trigger Type:</span>
-                             <span className="font-medium text-gray-900">{formData.listingTrigger || '-'}</span>
                         </div>
                         {formData.status === 'submitted' && (
                             <>
@@ -162,6 +178,12 @@ export const BondDetailModal = ({ item, isOpen, onClose, onSave }: { item: BondI
                                  <span className="font-medium text-gray-900">{formData.turnaroundTime || '-'}</span>
                             </div>
                             </>
+                        )}
+                        {formData.type && (
+                            <div className="flex justify-between">
+                                <span>Type:</span>
+                                <span className="font-medium text-gray-900">{formData.type}</span>
+                            </div>
                         )}
                     </div>
 
