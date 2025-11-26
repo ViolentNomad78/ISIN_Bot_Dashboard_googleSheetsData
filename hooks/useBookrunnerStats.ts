@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { BookrunnerStat } from '../types';
@@ -17,6 +18,14 @@ const normalizeCurrency = (c: string): string => {
     if (upper.includes('NOK')) return 'NOK';
     if (upper.includes('SEK')) return 'SEK';
     return upper;
+};
+
+// Helper to Title Case a string (e.g. "nykre" -> "Nykre")
+const toTitleCase = (str: string): string => {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
 };
 
 export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null, currencyFilter: string) => {
@@ -68,7 +77,8 @@ export const useBookrunnerStats = (startDate: Date | null, endDate: Date | null,
                     
                     // 1. Normalize the Bookrunner Name
                     const rawNameLower = (br.name || '').toLowerCase().trim();
-                    const standardName = BOOKRUNNER_MAPPINGS[rawNameLower] || br.name || 'Unknown';
+                    // Try mapping first, then fallback to Title Case of the original name
+                    const standardName = BOOKRUNNER_MAPPINGS[rawNameLower] || toTitleCase(br.name || 'Unknown');
 
                     // 2. Process Deals
                     const validDeals: any[] = [];

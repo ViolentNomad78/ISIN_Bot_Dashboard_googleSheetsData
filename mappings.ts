@@ -148,5 +148,6 @@ export const BOOKRUNNER_MAPPINGS: Record<string, string> = {
     'santander (b&d)': 'Santander',
     'santander (gc)': 'Santander',
     'itau bba': 'Itaú BBA',
-    'balanz': 'Balanz Capital'
+    'balanz': 'Balanz Capital',
+    'nykre': 'Nykredit'
 };
