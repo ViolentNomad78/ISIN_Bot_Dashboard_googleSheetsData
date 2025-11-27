@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { BondItem, AutoTriggerRule } from './types';
 import { INITIAL_DATA, INITIAL_RULES, INITIAL_ISSUERS } from './data';
@@ -61,7 +60,7 @@ export const App = () => {
   const getPageTitle = () => {
       switch(view) {
           case 'board': return 'ISIN Flow';
-          case 'list': return 'Global ISIN Registry';
+          case 'list': return 'Scraped ISINs';
           case 'stats': return 'Bot Listing Statistics';
           case 'bookrunners': return 'Bookrunner Analytics';
           case 't7': return 'T7 FFM Instruments';
@@ -102,7 +101,7 @@ export const App = () => {
              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'list' ? 'bg-[#9F8A79] text-white shadow-lg' : 'hover:bg-slate-800'}`}
           >
             <Icons.List />
-            <span className="font-medium">All ISINs</span>
+            <span className="font-medium">Scraped ISINs</span>
           </button>
 
           <button 
@@ -138,7 +137,7 @@ export const App = () => {
         {/* Mobile Nav Links (Simple) */}
         <div className="lg:hidden flex gap-2 p-2 overflow-x-auto">
              <button onClick={() => setView('board')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'board' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Flow Board</button>
-             <button onClick={() => setView('list')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'list' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>All ISINs</button>
+             <button onClick={() => setView('list')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'list' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Scraped ISINs</button>
              <button onClick={() => setView('t7')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 't7' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>T7</button>
              <button onClick={() => setView('stats')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'stats' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Stats</button>
              <button onClick={() => setView('bookrunners')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'bookrunners' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Bookrunners</button>
