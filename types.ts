@@ -60,3 +60,20 @@ export interface BookrunnerStat {
         currency: string;
     }[];
 }
+
+export interface T7Instrument {
+    isin: string;
+    instrumentName: string;
+    wkn: string;
+    productStatus: string;
+    instrumentStatus: string;
+    issueDate: string | null;
+    maturityDate: string | null;
+    minTradableUnit: number;
+    specialistId: string;
+    specialistName: string;
+    currency: string;
+    firstTradingDate: string | null;
+    lastTradingDate: string | null;
+    updatedAt: string;
+}

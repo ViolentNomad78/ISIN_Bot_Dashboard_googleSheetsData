@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { BondItem, AutoTriggerRule } from './types';
 import { INITIAL_DATA, INITIAL_RULES, INITIAL_ISSUERS } from './data';
@@ -10,6 +11,7 @@ import { AddIsinModal } from './components/AddIsinModal';
 import { AutoTriggerWidget, FavoriteIssuersWidget, StatWidget } from './components/Widgets';
 import { StatsView } from './components/StatsView';
 import { BookrunnersView } from './components/BookrunnersView';
+import { T7View } from './components/T7View';
 import { KanbanColumn } from './components/KanbanColumn';
 import { TerminalStatesTable } from './components/TerminalStatesTable';
 import { ListView } from './components/ListView';
@@ -18,7 +20,7 @@ import { useSupabaseData } from './hooks/useSupabaseData';
 
 export const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [view, setView] = useState<'board' | 'list' | 'stats' | 'bookrunners'>('board');
+  const [view, setView] = useState<'board' | 'list' | 'stats' | 'bookrunners' | 't7'>('board');
   
   // Use Supabase for Realtime Data
   const { data: items, setData, isConnected } = useSupabaseData(INITIAL_DATA);
@@ -62,6 +64,7 @@ export const App = () => {
           case 'list': return 'Global ISIN Registry';
           case 'stats': return 'Bot Listing Statistics';
           case 'bookrunners': return 'Bookrunner Analytics';
+          case 't7': return 'T7 FFM Instruments';
           default: return '';
       }
   };
@@ -103,6 +106,14 @@ export const App = () => {
           </button>
 
           <button 
+             onClick={() => setView('t7')}
+             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 't7' ? 'bg-[#9F8A79] text-white shadow-lg' : 'hover:bg-slate-800'}`}
+          >
+            <Icons.Database />
+            <span className="font-medium">T7 Instruments</span>
+          </button>
+
+          <button 
              onClick={() => setView('stats')}
              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'stats' ? 'bg-[#9F8A79] text-white shadow-lg' : 'hover:bg-slate-800'}`}
           >
@@ -128,6 +139,7 @@ export const App = () => {
         <div className="lg:hidden flex gap-2 p-2 overflow-x-auto">
              <button onClick={() => setView('board')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'board' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Flow Board</button>
              <button onClick={() => setView('list')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'list' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>All ISINs</button>
+             <button onClick={() => setView('t7')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 't7' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>T7</button>
              <button onClick={() => setView('stats')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'stats' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Stats</button>
              <button onClick={() => setView('bookrunners')} className={`px-4 py-2 rounded text-sm whitespace-nowrap ${view === 'bookrunners' ? 'bg-[#9F8A79] text-white' : 'text-slate-300'}`}>Bookrunners</button>
         </div>
@@ -161,7 +173,7 @@ export const App = () => {
            </h2>
            <div className="flex items-center gap-2 lg:gap-4">
                <span className="text-xs hidden md:inline text-gray-500">Last updated: {new Date().toLocaleTimeString()}</span>
-               {view !== 'stats' && view !== 'bookrunners' && (
+               {view !== 'stats' && view !== 'bookrunners' && view !== 't7' && (
                    <button 
                     onClick={() => setIsAddModalOpen(true)}
                     className="bg-[#9F8A79] hover:bg-[#8a7566] text-white px-3 py-1.5 lg:px-4 lg:py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap"
@@ -177,6 +189,8 @@ export const App = () => {
             <StatsView />
         ) : view === 'bookrunners' ? (
             <BookrunnersView />
+        ) : view === 't7' ? (
+            <T7View />
         ) : (
             <div className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden relative">
                 
