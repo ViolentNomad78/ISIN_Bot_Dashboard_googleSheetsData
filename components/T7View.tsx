@@ -71,6 +71,18 @@ const SimplePieChart = ({ data }: { data: { label: string; value: number; color:
     );
 };
 
+// --- Types for Rule Engine ---
+interface HighlightRule {
+    id: string;
+    label: string;
+    description?: string;
+    colorClass: string; // Tailwind background class
+    textClass: string;  // Tailwind text class for label
+    isActive: boolean;
+    // Returns true if the rule matches
+    condition: (scrapedStatus: string, specialistId: string) => boolean;
+}
+
 export const T7View = () => {
     const [data, setData] = useState<T7Instrument[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +91,58 @@ export const T7View = () => {
     const [specialistOptions, setSpecialistOptions] = useState<string[]>([]);
     const [statusOptions, setStatusOptions] = useState<string[]>([]);
     
+    // Scraped Status Map for Coloring
+    const [scrapedStatusMap, setScrapedStatusMap] = useState<Record<string, string>>({});
+
+    // --- Smart Highlighting Rules ---
+    const [rules, setRules] = useState<HighlightRule[]>([
+        {
+            id: 'submitted_won',
+            label: 'Submitted & Won',
+            description: 'Status: Submitted | Specialist: SPAFR',
+            colorClass: 'bg-emerald-100 hover:bg-emerald-200',
+            textClass: 'text-emerald-700',
+            isActive: true,
+            condition: (st, sp) => st.toLowerCase() === 'submitted' && sp === 'SPAFR'
+        },
+        {
+            id: 'submitted_lost',
+            label: 'Submitted but Lost',
+            description: 'Status: Submitted | Specialist: != SPAFR',
+            colorClass: 'bg-blue-50 hover:bg-blue-100',
+            textClass: 'text-blue-700',
+            isActive: true,
+            condition: (st, sp) => st.toLowerCase() === 'submitted' && sp !== 'SPAFR'
+        },
+        {
+            id: 'triggered_closed',
+            label: 'Triggered / Closed',
+            description: 'Status: Too Late',
+            colorClass: 'bg-rose-50 hover:bg-rose-100',
+            textClass: 'text-rose-700',
+            isActive: true,
+            condition: (st, sp) => st.toLowerCase() === 'too_late'
+        },
+        {
+            id: 'scraped_idle',
+            label: 'Scraped / Idle',
+            description: 'Status: Scraped',
+            colorClass: 'bg-amber-50 hover:bg-amber-100',
+            textClass: 'text-amber-700',
+            isActive: true,
+            condition: (st, sp) => st.toLowerCase() === 'scraped'
+        },
+        {
+            id: 'found_generic',
+            label: 'Found by Scraper',
+            description: 'ISIN match only',
+            colorClass: 'bg-purple-50 hover:bg-purple-100',
+            textClass: 'text-purple-700',
+            isActive: true,
+            condition: (st, sp) => true // Fallback match if status exists
+        }
+    ]);
+
     // Stats State
     const [statsData, setStatsData] = useState<{ label: string; value: number; color: string }[]>([]);
     const [isStatsLoading, setIsStatsLoading] = useState(false);
@@ -92,7 +156,6 @@ export const T7View = () => {
         specialist: 'all', // Name or ID
         currency: 'all',
         instrumentStatus: 'all',
-        // productStatus removed
     });
 
     // Sorting State
@@ -201,13 +264,37 @@ export const T7View = () => {
                     updatedAt: i.updated_at
                 }));
                 setData(mapped);
+
+                // --- Secondary Fetch: Check against Scraped Bond ISINs ---
+                const isinsToCheck = mapped.map(i => i.isin);
+                if (isinsToCheck.length > 0) {
+                    const { data: statusData } = await supabase
+                        .from('scraped_bond_isins')
+                        .select('isin, status')
+                        .in('isin', isinsToCheck);
+                    
+                    const statusMap: Record<string, string> = {};
+                    if (statusData) {
+                        statusData.forEach((item: any) => {
+                            statusMap[item.isin] = item.status;
+                        });
+                    }
+                    setScrapedStatusMap(statusMap);
+                } else {
+                    setScrapedStatusMap({});
+                }
             }
         } catch (err: any) {
             console.error('Error fetching T7 data:', err);
             let errMsg = 'An unexpected error occurred';
-            if (typeof err === 'object' && err !== null) {
-                const msg = err.message || err.error_description || err.details;
-                if (msg) errMsg = String(msg);
+            if (err) {
+                if (typeof err === 'string') errMsg = err;
+                else if (typeof err === 'object') {
+                    // Try to safely extract message from object
+                    const msg = err.message || err.error_description || err.details;
+                    if (msg) errMsg = String(msg);
+                    else errMsg = JSON.stringify(err);
+                }
             }
             setError(errMsg);
         } finally {
@@ -278,6 +365,12 @@ export const T7View = () => {
         setFilters(prev => ({ ...prev, [key]: value }));
     };
 
+    const toggleRule = (ruleId: string) => {
+        setRules(prev => prev.map(r => 
+            r.id === ruleId ? { ...r, isActive: !r.isActive } : r
+        ));
+    };
+
     const handleSort = (field: string) => {
         if (sortField === field) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -301,12 +394,36 @@ export const T7View = () => {
         );
     };
 
+    // --- Dynamic Row Coloring Logic ---
+    const getRowClass = (item: T7Instrument) => {
+        const scrapedStatus = scrapedStatusMap[item.isin];
+        if (!scrapedStatus) return 'bg-white hover:bg-gray-50'; // No match found in scraped DB
+
+        const specId = item.specialistId || '';
+        
+        // Find the FIRST active rule that matches
+        const matchedRule = rules.find(rule => 
+            rule.isActive && rule.condition(scrapedStatus, specId)
+        );
+
+        return matchedRule ? matchedRule.colorClass : 'bg-white hover:bg-gray-50';
+    };
+
     // Reusable Dropdown Arrow
     const SelectArrow = () => (
         <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
             <Icons.ChevronDown />
         </div>
     );
+
+    // Safe Picker Handler
+    const safeShowPicker = (e: React.MouseEvent<HTMLInputElement>) => {
+        try {
+            (e.target as HTMLInputElement).showPicker?.();
+        } catch (err) {
+            // Ignore error if browser doesn't support or allow showPicker
+        }
+    };
 
     return (
         <div className="bg-slate-50 min-h-full flex flex-col gap-6 p-4 lg:p-6 overflow-hidden h-full">
@@ -350,28 +467,64 @@ export const T7View = () => {
                 {/* Advanced Filters Panel */}
                 {showFilters && (
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 pt-4 border-t border-gray-100 animate-in fade-in slide-in-from-top-2">
-                        {/* Column 1: Date Range */}
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase mb-1">First Trading (From - To)</label>
-                            <div className="flex items-center gap-2">
-                                <input 
-                                    type="date" 
-                                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 ring-[#9F8A79] bg-white text-gray-900 cursor-pointer"
-                                    value={filters.dateFrom}
-                                    onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                                />
-                                <span className="text-gray-400 font-bold">-</span>
-                                <input 
-                                    type="date" 
-                                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 ring-[#9F8A79] bg-white text-gray-900 cursor-pointer"
-                                    value={filters.dateTo}
-                                    onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                                />
+                        {/* Column 1: Date Range - Added z-30 to ensure it overlaps Column 2 if needed */}
+                        <div className="flex flex-col gap-4 z-30 relative min-w-0">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase mb-1">First Trading (From - To)</label>
+                                <div className="flex items-center gap-1">
+                                    <div className="relative flex-1 min-w-0">
+                                        <input 
+                                            type="date" 
+                                            className="w-full border rounded-lg pl-3 pr-9 py-2 text-sm outline-none focus:ring-1 ring-[#9F8A79] bg-white text-gray-900 cursor-pointer appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                                            value={filters.dateFrom}
+                                            onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                                            onClick={safeShowPicker}
+                                        />
+                                        <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-gray-500">
+                                            <Icons.Calendar />
+                                        </div>
+                                    </div>
+                                    <span className="text-gray-400 font-bold shrink-0">-</span>
+                                    <div className="relative flex-1 min-w-0">
+                                        <input 
+                                            type="date" 
+                                            className="w-full border rounded-lg pl-3 pr-9 py-2 text-sm outline-none focus:ring-1 ring-[#9F8A79] bg-white text-gray-900 cursor-pointer appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                                            value={filters.dateTo}
+                                            onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                                            onClick={safeShowPicker}
+                                        />
+                                        <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-gray-500">
+                                            <Icons.Calendar />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Smart Highlighting Legend/Control */}
+                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 mt-auto">
+                                <h4 className="text-xs font-bold text-gray-600 uppercase mb-2 flex items-center gap-1">
+                                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-purple-400 to-blue-500"></div>
+                                    Smart Highlighting
+                                </h4>
+                                <div className="space-y-1.5 max-h-32 overflow-y-auto scrollbar-hide">
+                                    {rules.map(rule => (
+                                        <div 
+                                            key={rule.id} 
+                                            onClick={() => toggleRule(rule.id)}
+                                            className={`flex items-center gap-2 text-xs p-1 rounded cursor-pointer transition-colors select-none ${rule.isActive ? 'hover:bg-gray-100 opacity-100' : 'opacity-40 grayscale'}`}
+                                            title={rule.description}
+                                        >
+                                            <div className={`w-3 h-3 rounded border shadow-sm shrink-0 ${rule.colorClass.split(' ')[0]}`}></div>
+                                            <span className={`font-medium ${rule.isActive ? 'text-gray-700' : 'text-gray-400'}`}>{rule.label}</span>
+                                            {rule.isActive && <span className="ml-auto text-[10px] text-gray-400">ON</span>}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Column 2: Specialist & Currency */}
-                        <div className="flex flex-col gap-4">
+                        {/* Column 2: Specialist & Currency - Added z-20 */}
+                        <div className="flex flex-col gap-4 z-20 relative">
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase mb-1">Specialist</label>
                                 <div className="relative">
@@ -409,7 +562,7 @@ export const T7View = () => {
                         </div>
 
                         {/* Column 3: Status (Instrument Only) */}
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 z-10">
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
                                 <div className="relative">
@@ -457,7 +610,7 @@ export const T7View = () => {
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative shrink-0" role="alert">
                     <strong className="font-bold">Database Error: </strong>
-                    <span className="block sm:inline">{error}</span>
+                    <span className="block sm:inline">{String(error)}</span>
                 </div>
             )}
 
@@ -520,8 +673,8 @@ export const T7View = () => {
                                 </tr>
                             ) : (
                                 data.map((item) => (
-                                    <tr key={item.isin} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-2 font-mono text-blue-600 font-medium sticky left-0 bg-white group-hover:bg-gray-50">{item.isin}</td>
+                                    <tr key={item.isin} className={`border-b border-gray-100 transition-colors ${getRowClass(item)}`}>
+                                        <td className="px-4 py-2 font-mono text-blue-600 font-medium sticky left-0 bg-inherit">{item.isin}</td>
                                         <td className="px-4 py-2 font-mono text-gray-600">{item.wkn || '-'}</td>
                                         <td className="px-4 py-2 font-medium text-gray-800 truncate max-w-[300px]" title={item.instrumentName}>{item.instrumentName}</td>
                                         <td className="px-4 py-2 text-center font-mono font-bold text-gray-600">{item.currency}</td>
